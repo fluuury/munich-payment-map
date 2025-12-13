@@ -6,26 +6,27 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { supabase } from './supabaseClient.js';
 import './App.css';
 
-// ... function App() starts below here
-
 function App() {
   const mapContainer = useRef(null);
   const map = useRef(null);
   const masterData = useRef(null);
   
+  // 1. STATE: Change the filter category name
   const [activeFilter, setActiveFilter] = useState('all');
 
   // 🛡️ HELPER: Majority Rule Calculation
   const calculateStatus = (votes) => {
     const card = votes.card_votes || 0;
-    const ec = votes.ec_votes || 0;
+    // 2. LOGIC: Use 'ec' as the internal vote category but use Girocard text
+    const girocard = votes.ec_votes || 0; 
     const cash = votes.cash_votes || 0;
 
-    if (card >= ec && card >= cash && card > 0) {
+    if (card >= girocard && card >= cash && card > 0) {
       return { color: '#00e676', text: `Verified: Accepts Cards (${card} votes)`, type: 'card' };
     } 
-    else if (ec >= cash && ec > 0) {
-      return { color: '#ffea00', text: `Verified: EC Only (${ec} votes)`, type: 'ec' };
+    // Change logic text to Girocard
+    else if (girocard >= cash && girocard > 0) {
+      return { color: '#ffea00', text: `Verified: Girocard Only (${girocard} votes)`, type: 'girocard' };
     } 
     else if (cash > 0) {
       return { color: '#ff5252', text: `Verified: Cash Only (${cash} votes)`, type: 'cash' };
@@ -91,6 +92,7 @@ function App() {
     `;
 
     try {
+      // 1. Fetch OSM Data
       const response = await fetch("https://overpass-api.de/api/interpreter", {
         method: "POST",
         body: query
@@ -98,6 +100,7 @@ function App() {
       const data = await response.json();
       const geoJson = osmtogeojson(data);
 
+      // 2. Fetch Supabase Votes
       const { data: voteData, error: voteError } = await supabase
         .from('venue_votes')
         .select('*');
@@ -111,13 +114,18 @@ function App() {
         voteData.forEach(vote => votesMap.set(vote.osm_id, vote));
       }
       
+      // 3. Process Colors 
       geoJson.features.forEach((feature) => {
         const p = feature.properties;
+        
+        // Retrieve existing votes or default to 0
         const existingVote = votesMap.get(feature.id);
         const votes = existingVote || { cash_votes: 0, ec_votes: 0, card_votes: 0 };
         
+        // Step A: Check Database Votes using Majority Rule
         let status = calculateStatus(votes);
 
+        // Step B: If no votes exist, fall back to OSM tags
         if (status.type === 'unknown') {
             if (p['payment:cards'] === 'no') {
                status = { color: '#ff5252', text: 'Cash Only (OSM)', type: 'cash' };
@@ -125,8 +133,9 @@ function App() {
             else if (p['payment:visa'] === 'yes' || p['payment:mastercard'] === 'yes' || p['payment:cards'] === 'yes') {
                status = { color: '#00e676', text: 'Accepts Cards (OSM)', type: 'card' };
             } 
+            // 3. LOGIC: Change OSM fallback text to Girocard
             else if (p['payment:girocard'] === 'yes') {
-               status = { color: '#ffea00', text: 'EC / Girocard Only (OSM)', type: 'ec' };
+               status = { color: '#ffea00', text: 'Girocard Only (OSM)', type: 'girocard' };
             }
         }
 
@@ -136,6 +145,7 @@ function App() {
         feature.properties.votes = votes;
       });
 
+      // 4. Set Master Data and Add Source to Map
       masterData.current = geoJson;
 
       if (map.current.getSource('places')) {
@@ -168,6 +178,7 @@ function App() {
     }
   };
 
+  // Filtering Logic
   const applyFilter = (category) => {
     setActiveFilter(category);
     
@@ -178,8 +189,9 @@ function App() {
     if (category === 'all') {
       filteredFeatures = masterData.current.features;
     } else {
+      // 4. FILTER: Change EC to Girocard in filtering logic
       filteredFeatures = masterData.current.features.filter(f => 
-        f.properties.filter_type === category
+        f.properties.filter_type === category.replace('ec', 'girocard')
       );
     }
 
@@ -189,6 +201,36 @@ function App() {
     };
     
     map.current.getSource('places').setData(filteredGeoJson);
+  };
+
+  // 🔍 Search Functionality (Removed since user wanted it out)
+  const handleSearch = async (e) => {
+    if (e.key === 'Enter') {
+      const searchTerm = e.target.value;
+      if (!searchTerm) return;
+
+      try {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${searchTerm}, Munich`
+        );
+        const results = await response.json();
+
+        if (results.length > 0) {
+          const firstResult = results[0];
+          const { lat, lon } = firstResult;
+
+          map.current.flyTo({
+            center: [parseFloat(lon), parseFloat(lat)],
+            zoom: 16,
+            essential: true 
+          });
+        } else {
+          alert("Location not found in Munich!");
+        }
+      } catch (error) {
+        console.error("Search error:", error);
+      }
+    }
   };
 
   const setupPopupInteraction = () => {
@@ -216,7 +258,7 @@ function App() {
             buttonsHtml = `
             <div style="display: flex; gap: 5px; margin-top: 10px;">
               <button id="vote-cash" style="background:#ff5252; color:white; border:none; padding:8px; border-radius:4px; cursor:pointer; font-weight:bold;">Cash</button>
-              <button id="vote-ec" style="background:#ffea00; color:black; border:none; padding:8px; border-radius:4px; cursor:pointer; font-weight:bold;">EC</button>
+              <button id="vote-ec" style="background:#ffea00; color:black; border:none; padding:8px; border-radius:4px; cursor:pointer; font-weight:bold;">Girocard</button>
               <button id="vote-card" style="background:#00e676; color:white; border:none; padding:8px; border-radius:4px; cursor:pointer; font-weight:bold;">Card</button>
             </div>`;
         }
@@ -228,7 +270,7 @@ function App() {
               Status: <strong>${currentStatus}</strong>
             </p>
             <p style="margin:0 0 10px; font-size: 11px; color: #999;">
-               Cash: <strong>${votes.cash_votes}</strong> | EC: <strong>${votes.ec_votes}</strong> | Card: <strong>${votes.card_votes}</strong>
+               Cash: <strong>${votes.cash_votes}</strong> | Girocard: <strong>${votes.ec_votes}</strong> | Card: <strong>${votes.card_votes}</strong>
             </p>
             ${buttonsHtml}
           </div>
@@ -239,39 +281,48 @@ function App() {
           .setDOMContent(popupNode)
           .addTo(map.current);
 
+        // --- THE VOTE SAVING LOGIC ---
         const handleVote = async (voteType) => {
             const match = masterData.current.features.find(f => f.id === clickedFeature.id);
             if (!match) return;
 
-            let columnToIncrement = `${voteType}_votes`;
+            // Note: We intentionally keep 'ec_votes' in the DB for simplicity, but treat it as Girocard
+            let columnToIncrement = `${voteType}_votes`.replace('girocard', 'ec'); 
             let newVoteCount = match.properties.votes[columnToIncrement] + 1;
 
+            // 1. Save the vote to Supabase
             const { error: dbError } = await supabase
                 .from('venue_votes')
                 .upsert({
                     osm_id: clickedFeature.id,
                     name: match.properties.name || 'Unknown',
                     cash_votes: voteType === 'cash' ? newVoteCount : match.properties.votes.cash_votes,
-                    ec_votes: voteType === 'ec' ? newVoteCount : match.properties.votes.ec_votes,
+                    ec_votes: voteType === 'girocard' ? newVoteCount : match.properties.votes.ec_votes,
                     card_votes: voteType === 'card' ? newVoteCount : match.properties.votes.card_votes
                 }, 
-                { onConflict: 'osm_id' });
+                { 
+                    onConflict: 'osm_id'
+                });
 
             if (dbError) {
                 console.error("Database Save Error:", dbError);
                 return; 
             }
 
+            // 2. Update the master data visually
             match.properties.votes[columnToIncrement] = newVoteCount; 
             
+            // 🛡️ NEW: Re-calculate the color based on Majority Rule
             const newStatus = calculateStatus(match.properties.votes);
             match.properties.marker_color = newStatus.color;
             match.properties.payment_status = newStatus.text;
             match.properties.filter_type = newStatus.type;
 
+            // 3. Mark user as "Voted" in Local Storage
             votedVenues[clickedFeature.id] = true;
             localStorage.setItem('votedVenues', JSON.stringify(votedVenues));
 
+            // 4. Refresh Map & Close Popup
             map.current.getSource('places').setData(masterData.current);
             popup.remove();
             alert("Thanks for voting!");
@@ -279,7 +330,8 @@ function App() {
 
         if (!hasVoted) {
             popupNode.querySelector('#vote-cash').addEventListener('click', () => handleVote('cash'));
-            popupNode.querySelector('#vote-ec').addEventListener('click', () => handleVote('ec'));
+            // 7. LISTENERS: Change EC to Girocard (internal vote type)
+            popupNode.querySelector('#vote-ec').addEventListener('click', () => handleVote('girocard'));
             popupNode.querySelector('#vote-card').addEventListener('click', () => handleVote('card'));
         }
       });
@@ -311,7 +363,7 @@ function App() {
         <button 
           className={activeFilter === 'ec' ? 'active' : ''} 
           onClick={() => applyFilter('ec')}>
-          EC 🟡
+          Girocard 🟡
         </button>
         <button 
           className={activeFilter === 'cash' ? 'active' : ''} 
@@ -319,7 +371,6 @@ function App() {
           Cash 🔴
         </button>
       </div>
-      <Analytics />
     </div>
   );
 }
