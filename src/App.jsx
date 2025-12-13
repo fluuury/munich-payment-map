@@ -1,5 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
+import { Analytics } from '@vercel/analytics/react'; // 👈 ADD THIS LINE
+import osmtogeojson from 'osmtogeojson';
+import 'maplibre-gl/dist/maplibre-gl.css';
+import React, { useEffect, useRef, useState } from 'react';
+import maplibregl from 'maplibre-gl';
 import osmtogeojson from 'osmtogeojson';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { supabase } from './supabaseClient.js';
@@ -316,6 +321,7 @@ function App() {
           Cash 🔴
         </button>
       </div>
+      <Analytics />
     </div>
   );
 }
