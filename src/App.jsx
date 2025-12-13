@@ -1,9 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
+import { Analytics } from '@vercel/analytics/react';
 import osmtogeojson from 'osmtogeojson';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { supabase } from './supabaseClient.js';
 import './App.css';
+
+// ... function App() starts below here
 
 function App() {
   const mapContainer = useRef(null);
@@ -316,6 +319,7 @@ function App() {
           Cash 🔴
         </button>
       </div>
+      <Analytics />
     </div>
   );
 }
