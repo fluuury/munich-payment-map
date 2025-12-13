@@ -220,7 +220,7 @@ function App() {
 
         popupNode.innerHTML = `
           <div style="font-family: sans-serif; padding: 5px; min-width: 160px;">
-            <h3 style="margin:0 0 10px;">${name}</h3>
+            <h3 style="margin:0 0 10px; color: #000;">${name}</h3>
             <p style="margin:0 0 5px; font-size: 13px; color: #666;">
               Status: <strong>${currentStatus}</strong>
             </p>
