@@ -80,3 +80,74 @@ body, html, #root {
   background-color: #333;
   color: white;
 }
+
+/* ---------------------------------- */
+/* WELCOME POPUP STYLES */
+/* ---------------------------------- */
+.welcome-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7); /* Dark dimmed background */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000; /* Ensure it's on top of everything */
+  backdrop-filter: blur(2px);
+}
+
+.welcome-box {
+  background-color: white;
+  color: #333;
+  padding: 30px 25px;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+  max-width: 90%;
+  width: 400px;
+  text-align: left;
+  line-height: 1.5;
+}
+
+.welcome-box h2 {
+  margin-top: 0;
+  font-size: 1.5em;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 15px;
+  margin-bottom: 15px;
+  color: #000;
+}
+
+.welcome-box p {
+  font-size: 0.95em;
+  margin-bottom: 12px;
+}
+
+.welcome-box ul {
+  padding-left: 20px;
+  margin-bottom: 20px;
+}
+
+.welcome-box ul li {
+  margin-bottom: 8px;
+  font-size: 0.95em;
+}
+
+.close-button {
+  width: 100%;
+  padding: 12px;
+  margin-top: 10px;
+  background-color: #3f51b5;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.1em;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.close-button:hover {
+  background-color: #303f9f;
+}
