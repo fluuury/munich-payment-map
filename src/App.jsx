@@ -22,7 +22,7 @@ function App() {
     const cash = votes.cash_votes || 0;
 
     if (card >= girocard && card >= cash && card > 0) {
-      return { color: '#00e676', text: `Verified: Accepts All Cards (${card} votes)`, type: 'card' };
+      return { color: '#00e676', text: `Verified: Accepts All Common Cards (${card} votes)`, type: 'card' };
     } 
     else if (girocard >= cash && girocard > 0) {
       return { color: '#ffea00', text: `Verified: Girocard Only (${girocard} votes)`, type: 'girocard' };
@@ -121,7 +121,7 @@ function App() {
                status = { color: '#ff5252', text: 'Cash Only (OSM)', type: 'cash' };
             } 
             else if (p['payment:visa'] === 'yes' || p['payment:mastercard'] === 'yes' || p['payment:cards'] === 'yes') {
-               status = { color: '#00e676', text: 'Accepts All Cards (OSM)', type: 'card' };
+               status = { color: '#00e676', text: 'Accepts All Common Cards (OSM)', type: 'card' };
             } 
             else if (p['payment:girocard'] === 'yes') {
                status = { color: '#ffea00', text: 'Girocard Only (OSM)', type: 'girocard' };
@@ -215,7 +215,7 @@ function App() {
             <div style="display: flex; gap: 5px; margin-top: 10px;">
               <button id="vote-cash" style="background:#ff5252; color:white; border:none; padding:8px; border-radius:4px; cursor:pointer; font-weight:bold;">Cash</button>
               <button id="vote-ec" style="background:#ffea00; color:black; border:none; padding:8px; border-radius:4px; cursor:pointer; font-weight:bold;">Girocard</button>
-              <button id="vote-card" style="background:#00e676; color:white; border:none; padding:8px; border-radius:4px; cursor:pointer; font-weight:bold;">All Cards</button>
+              <button id="vote-card" style="background:#00e676; color:white; border:none; padding:8px; border-radius:4px; cursor:pointer; font-weight:bold;">All Common Cards</button>
             </div>`;
         }
 
@@ -302,7 +302,7 @@ function App() {
           <p>The status of each dot is determined by your votes:</p>
           
           <ul style={{ paddingLeft: '20px', listStyleType: 'none' }}>
-            <li><span style={{ color: '#00e676', fontWeight: 'bold' }}>🟢 All Cards:</span> Accepts all modern cards (Visa, Mastercard, Apple Pay, etc.).</li>
+            <li><span style={{ color: '#00e676', fontWeight: 'bold' }}>🟢 All Common Cards:</span> Accepts most modern cards (Visa, Mastercard, Apple Pay, etc.).</li>
             <li><span style={{ color: '#ffea00', fontWeight: 'bold' }}>🟡 Girocard:</span> Accepts German bank cards (Girocard/EC) only.</li>
             <li><span style={{ color: '#ff5252', fontWeight: 'bold' }}>🔴 Cash:</span> Primarily cash, or they are known to reject cards.</li>
             <li><span style={{ color: '#b0bec5', fontWeight: 'bold' }}>⚪ Unknown:</span> No one has voted here yet.</li>
@@ -338,7 +338,7 @@ function App() {
         <button 
           className={activeFilter === 'card' ? 'active' : ''} 
           onClick={() => applyFilter('card')}>
-          All Cards 🟢
+          All Common Cards 🟢
         </button>
         <button 
           className={activeFilter === 'ec' ? 'active' : ''} 
