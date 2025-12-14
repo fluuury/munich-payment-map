@@ -297,7 +297,7 @@ function App() {
     return (
       <div className="welcome-overlay">
         <div className="welcome-box">
-          <h2>👋 Welcome to the Payment Map!</h2>
+          <h2>👋 Welcome to the Munich Payment Map!</h2>
           <p>This map is a community project to help you avoid the "Cash Only" frustration in Munich. </p>
           <p>The status of each dot is determined by your votes:</p>
           
