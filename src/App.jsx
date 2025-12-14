@@ -272,7 +272,17 @@ function App() {
 
             map.current.getSource('places').setData(masterData.current);
             popup.remove();
-            alert("Thanks for voting and making Munich more transparent!");
+const messages = [
+                "Sauber! Thanks for helping Munich. 🥨",
+                "Vote saved! One step closer to the 21st century. 🚀",
+                "Boom! Another one mapped. 👊",
+                "Doing the lord's work. Thanks! 🙌",
+                "Got it! Death to the ATM run. 🏃💨",
+                "You are a legend. Vote saved. ✅"
+            ];
+            const randomMsg = messages[Math.floor(Math.random() * messages.length)];
+            
+            alert(randomMsg);
         };
 
         if (!hasVoted) {
