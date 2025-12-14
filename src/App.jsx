@@ -22,7 +22,7 @@ function App() {
     const cash = votes.cash_votes || 0;
 
     if (card >= girocard && card >= cash && card > 0) {
-      return { color: '#00e676', text: `Verified: Accepts Cards (${card} votes)`, type: 'card' };
+      return { color: '#00e676', text: `Verified: Accepts All Cards (${card} votes)`, type: 'card' };
     } 
     else if (girocard >= cash && girocard > 0) {
       return { color: '#ffea00', text: `Verified: Girocard Only (${girocard} votes)`, type: 'girocard' };
@@ -121,7 +121,7 @@ function App() {
                status = { color: '#ff5252', text: 'Cash Only (OSM)', type: 'cash' };
             } 
             else if (p['payment:visa'] === 'yes' || p['payment:mastercard'] === 'yes' || p['payment:cards'] === 'yes') {
-               status = { color: '#00e676', text: 'Accepts Cards (OSM)', type: 'card' };
+               status = { color: '#00e676', text: 'Accepts All Cards (OSM)', type: 'card' };
             } 
             else if (p['payment:girocard'] === 'yes') {
                status = { color: '#ffea00', text: 'Girocard Only (OSM)', type: 'girocard' };
@@ -215,7 +215,7 @@ function App() {
             <div style="display: flex; gap: 5px; margin-top: 10px;">
               <button id="vote-cash" style="background:#ff5252; color:white; border:none; padding:8px; border-radius:4px; cursor:pointer; font-weight:bold;">Cash</button>
               <button id="vote-ec" style="background:#ffea00; color:black; border:none; padding:8px; border-radius:4px; cursor:pointer; font-weight:bold;">Girocard</button>
-              <button id="vote-card" style="background:#00e676; color:white; border:none; padding:8px; border-radius:4px; cursor:pointer; font-weight:bold;">Card</button>
+              <button id="vote-card" style="background:#00e676; color:white; border:none; padding:8px; border-radius:4px; cursor:pointer; font-weight:bold;">All Cards</button>
             </div>`;
         }
 
