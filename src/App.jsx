@@ -302,9 +302,9 @@ function App() {
           <p>The status of each dot is determined by your votes:</p>
           
           <ul style={{ paddingLeft: '20px', listStyleType: 'none' }}>
-            <li><span style={{ color: '#5FE499', fontWeight: 'bold' }}>🟢 All Common Cards:</span> Accepts most modern cards (Visa, Mastercard, Apple Pay, etc.).</li>
+            <li><span style={{ color: '#4CB886', fontWeight: 'bold' }}>🟢 All Common Cards:</span> Accepts most modern cards (Visa, Mastercard, Apple Pay, etc.).</li>
             <li><span style={{ color: '#ECBA4A', fontWeight: 'bold' }}>🟡 Girocard:</span> Accepts German bank cards (Girocard/EC) only.</li>
-            <li><span style={{ color: '#ff5252', fontWeight: 'bold' }}>🔴 Cash:</span> Primarily cash, or they are known to reject cards.</li>
+            <li><span style={{ color: '#F04A60', fontWeight: 'bold' }}>🔴 Cash:</span> Primarily cash, or they are known to reject cards.</li>
             <li><span style={{ color: '#b0bec5', fontWeight: 'bold' }}>⚪ Unknown:</span> No one has voted here yet.</li>
           </ul>
 
