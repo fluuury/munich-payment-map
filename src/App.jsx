@@ -278,7 +278,8 @@ const messages = [
                 "Boom! Another one mapped. 👊",
                 "Doing the lord's work. Thanks! 🙌",
                 "Got it! Death to the ATM run. 🏃💨",
-                "You are a legend. Vote saved. ✅"
+                "You are a legend. Vote saved. ✅",
+                "Not all heroes wear capes. Some map payment methods. Thanks! 🙌"
             ];
             const randomMsg = messages[Math.floor(Math.random() * messages.length)];
             
