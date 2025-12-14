@@ -320,8 +320,14 @@ function App() {
 
           <p>Click any dot on the map, cast your single vote, and let's make Munich a better place for card payments!</p>
 
-          <button 
-            onClick={() => setShowWelcome(false)} 
+<button 
+            onClick={() => {
+                setShowWelcome(false);
+                // 🛠️ THE FIX: Force the map to wake up after the popup closes
+                setTimeout(() => { 
+                    if (map.current) map.current.resize(); 
+                }, 300);
+            }} 
             className="close-button"
           >
             Start Mapping!
