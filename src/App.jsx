@@ -344,7 +344,7 @@ function App() {
       });
   };
 
-  return (
+return (
     <div className="map-wrap">
       <div ref={mapContainer} className="map" />
       
@@ -371,6 +371,9 @@ function App() {
           Cash 🔴
         </button>
       </div>
+
+      {/* ✅ Analytics is back! */}
+      <Analytics />
     </div>
   );
 }
