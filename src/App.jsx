@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
-import { Analytics } from '@vercel/analytics/react';
 import osmtogeojson from 'osmtogeojson';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { supabase } from './supabaseClient.js';
@@ -18,7 +17,7 @@ function App() {
   // 🛡️ HELPER: Majority Rule Calculation
   const calculateStatus = (votes) => {
     const card = votes.card_votes || 0;
-    const girocard = votes.ec_votes || 0; // 'ec_votes' in DB maps to Girocard
+    const girocard = votes.ec_votes || 0; 
     const cash = votes.cash_votes || 0;
 
     if (card >= girocard && card >= cash && card > 0) {
@@ -65,7 +64,6 @@ function App() {
 
     map.current.addControl(new maplibregl.NavigationControl(), 'top-right');
 
-    // 📍 Add "Locate Me" Button
     map.current.addControl(
       new maplibregl.GeolocateControl({
         positionOptions: { enableHighAccuracy: true },
@@ -81,7 +79,6 @@ function App() {
   }, []);
 
   const fetchOverpassData = async () => {
-    // Defines the full Munich area and venue types
     const query = `
       [out:json][timeout:25];
       (
@@ -91,7 +88,6 @@ function App() {
     `;
 
     try {
-      // 1. Fetch OSM Data
       const response = await fetch("https://overpass-api.de/api/interpreter", {
         method: "POST",
         body: query
@@ -99,7 +95,6 @@ function App() {
       const data = await response.json();
       const geoJson = osmtogeojson(data);
 
-      // 2. Fetch Supabase Votes
       const { data: voteData, error: voteError } = await supabase
         .from('venue_votes')
         .select('*');
@@ -113,16 +108,13 @@ function App() {
         voteData.forEach(vote => votesMap.set(vote.osm_id, vote));
       }
       
-      // 3. Process Colors 
       geoJson.features.forEach((feature) => {
         const p = feature.properties;
         const existingVote = votesMap.get(feature.id);
         const votes = existingVote || { cash_votes: 0, ec_votes: 0, card_votes: 0 };
         
-        // Step A: Check Database Votes
         let status = calculateStatus(votes);
 
-        // Step B: If no votes, fall back to OSM tags
         if (status.type === 'unknown') {
             if (p['payment:cards'] === 'no') {
                status = { color: '#ff5252', text: 'Cash Only (OSM)', type: 'cash' };
@@ -183,7 +175,6 @@ function App() {
     if (category === 'all') {
       filteredFeatures = masterData.current.features;
     } else {
-      // Map 'ec' filter to 'girocard' type logic
       filteredFeatures = masterData.current.features.filter(f => 
         f.properties.filter_type === category.replace('ec', 'girocard')
       );
@@ -227,7 +218,6 @@ function App() {
             </div>`;
         }
 
-        // POPUP HTML
         popupNode.innerHTML = `
           <div style="font-family: sans-serif; padding: 5px; min-width: 160px;">
             <h3 style="margin:0 0 10px; color: #000;">${name}</h3>
@@ -250,7 +240,6 @@ function App() {
             const match = masterData.current.features.find(f => f.id === clickedFeature.id);
             if (!match) return;
 
-            // 'girocard' votes map to 'ec_votes' column in DB
             let columnToIncrement = `${voteType}_votes`.replace('girocard', 'ec'); 
             let newVoteCount = match.properties.votes[columnToIncrement] + 1;
 
@@ -300,7 +289,6 @@ function App() {
       });
   };
 
-  // Welcome Popup Component
   const WelcomePopup = () => {
     if (!showWelcome) return null;
 
@@ -320,13 +308,11 @@ function App() {
 
           <p>Click any dot on the map, cast your single vote, and let's make Munich a better place for card payments!</p>
 
-<button 
+          <button 
             onClick={() => {
                 setShowWelcome(false);
-                // 🛠️ THE FIX: Force the map to wake up after the popup closes
-                setTimeout(() => { 
-                    if (map.current) map.current.resize(); 
-                }, 300);
+                // 🛠️ Safety Check: Resize map when popup closes
+                setTimeout(() => { if (map.current) map.current.resize(); }, 300);
             }} 
             className="close-button"
           >
@@ -341,7 +327,6 @@ function App() {
     <div className="map-wrap">
       <div ref={mapContainer} className="map" />
       
-      {/* The Filter UI */}
       <div className="filter-bar">
         <button 
           className={activeFilter === 'all' ? 'active' : ''} 
@@ -365,7 +350,8 @@ function App() {
         </button>
       </div>
 
-      <Analytics /> 
+      {/* Analytics Removed to fix crash */}
+      
       <WelcomePopup />
     </div>
   );
