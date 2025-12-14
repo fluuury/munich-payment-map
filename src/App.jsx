@@ -12,7 +12,7 @@ function App() {
   
   // State for filtering and welcome popup
   const [activeFilter, setActiveFilter] = useState('all');
-  const [showWelcome, setShowWelcome] = useState(true);
+  const [showWelcome, setShowWelcome] = useState(false);
 
   // 🛡️ HELPER: Majority Rule Calculation
   const calculateStatus = (votes) => {
