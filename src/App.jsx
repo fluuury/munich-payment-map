@@ -272,7 +272,7 @@ function App() {
 
             map.current.getSource('places').setData(masterData.current);
             popup.remove();
-            alert("Thanks for voting!");
+            alert("Thanks for voting and making Munich more transparent!");
         };
 
         if (!hasVoted) {
