@@ -11,20 +11,19 @@ function App() {
   const map = useRef(null);
   const masterData = useRef(null);
   
-  // 1. STATE: Change the filter category name
+  // State for filtering and welcome popup
   const [activeFilter, setActiveFilter] = useState('all');
+  const [showWelcome, setShowWelcome] = useState(true);
 
   // 🛡️ HELPER: Majority Rule Calculation
   const calculateStatus = (votes) => {
     const card = votes.card_votes || 0;
-    // 2. LOGIC: Use 'ec' as the internal vote category but use Girocard text
     const girocard = votes.ec_votes || 0; 
     const cash = votes.cash_votes || 0;
 
     if (card >= girocard && card >= cash && card > 0) {
       return { color: '#00e676', text: `Verified: Accepts Cards (${card} votes)`, type: 'card' };
     } 
-    // Change logic text to Girocard
     else if (girocard >= cash && girocard > 0) {
       return { color: '#ffea00', text: `Verified: Girocard Only (${girocard} votes)`, type: 'girocard' };
     } 
@@ -66,7 +65,6 @@ function App() {
 
     map.current.addControl(new maplibregl.NavigationControl(), 'top-right');
 
-    // 📍 Add "Locate Me" Button
     map.current.addControl(
       new maplibregl.GeolocateControl({
         positionOptions: { enableHighAccuracy: true },
@@ -82,7 +80,6 @@ function App() {
   }, []);
 
   const fetchOverpassData = async () => {
-    // Defines the full Munich area and venue types
     const query = `
       [out:json][timeout:25];
       (
@@ -92,7 +89,6 @@ function App() {
     `;
 
     try {
-      // 1. Fetch OSM Data
       const response = await fetch("https://overpass-api.de/api/interpreter", {
         method: "POST",
         body: query
@@ -100,7 +96,6 @@ function App() {
       const data = await response.json();
       const geoJson = osmtogeojson(data);
 
-      // 2. Fetch Supabase Votes
       const { data: voteData, error: voteError } = await supabase
         .from('venue_votes')
         .select('*');
@@ -114,18 +109,13 @@ function App() {
         voteData.forEach(vote => votesMap.set(vote.osm_id, vote));
       }
       
-      // 3. Process Colors 
       geoJson.features.forEach((feature) => {
         const p = feature.properties;
-        
-        // Retrieve existing votes or default to 0
         const existingVote = votesMap.get(feature.id);
         const votes = existingVote || { cash_votes: 0, ec_votes: 0, card_votes: 0 };
         
-        // Step A: Check Database Votes using Majority Rule
         let status = calculateStatus(votes);
 
-        // Step B: If no votes exist, fall back to OSM tags
         if (status.type === 'unknown') {
             if (p['payment:cards'] === 'no') {
                status = { color: '#ff5252', text: 'Cash Only (OSM)', type: 'cash' };
@@ -133,7 +123,6 @@ function App() {
             else if (p['payment:visa'] === 'yes' || p['payment:mastercard'] === 'yes' || p['payment:cards'] === 'yes') {
                status = { color: '#00e676', text: 'Accepts Cards (OSM)', type: 'card' };
             } 
-            // 3. LOGIC: Change OSM fallback text to Girocard
             else if (p['payment:girocard'] === 'yes') {
                status = { color: '#ffea00', text: 'Girocard Only (OSM)', type: 'girocard' };
             }
@@ -145,7 +134,6 @@ function App() {
         feature.properties.votes = votes;
       });
 
-      // 4. Set Master Data and Add Source to Map
       masterData.current = geoJson;
 
       if (map.current.getSource('places')) {
@@ -178,7 +166,6 @@ function App() {
     }
   };
 
-  // Filtering Logic
   const applyFilter = (category) => {
     setActiveFilter(category);
     
@@ -189,7 +176,6 @@ function App() {
     if (category === 'all') {
       filteredFeatures = masterData.current.features;
     } else {
-      // 4. FILTER: Change EC to Girocard in filtering logic
       filteredFeatures = masterData.current.features.filter(f => 
         f.properties.filter_type === category.replace('ec', 'girocard')
       );
@@ -201,36 +187,6 @@ function App() {
     };
     
     map.current.getSource('places').setData(filteredGeoJson);
-  };
-
-  // 🔍 Search Functionality (Removed since user wanted it out)
-  const handleSearch = async (e) => {
-    if (e.key === 'Enter') {
-      const searchTerm = e.target.value;
-      if (!searchTerm) return;
-
-      try {
-        const response = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&q=${searchTerm}, Munich`
-        );
-        const results = await response.json();
-
-        if (results.length > 0) {
-          const firstResult = results[0];
-          const { lat, lon } = firstResult;
-
-          map.current.flyTo({
-            center: [parseFloat(lon), parseFloat(lat)],
-            zoom: 16,
-            essential: true 
-          });
-        } else {
-          alert("Location not found in Munich!");
-        }
-      } catch (error) {
-        console.error("Search error:", error);
-      }
-    }
   };
 
   const setupPopupInteraction = () => {
@@ -281,16 +237,13 @@ function App() {
           .setDOMContent(popupNode)
           .addTo(map.current);
 
-        // --- THE VOTE SAVING LOGIC ---
         const handleVote = async (voteType) => {
             const match = masterData.current.features.find(f => f.id === clickedFeature.id);
             if (!match) return;
 
-            // Note: We intentionally keep 'ec_votes' in the DB for simplicity, but treat it as Girocard
             let columnToIncrement = `${voteType}_votes`.replace('girocard', 'ec'); 
             let newVoteCount = match.properties.votes[columnToIncrement] + 1;
 
-            // 1. Save the vote to Supabase
             const { error: dbError } = await supabase
                 .from('venue_votes')
                 .upsert({
@@ -300,29 +253,23 @@ function App() {
                     ec_votes: voteType === 'girocard' ? newVoteCount : match.properties.votes.ec_votes,
                     card_votes: voteType === 'card' ? newVoteCount : match.properties.votes.card_votes
                 }, 
-                { 
-                    onConflict: 'osm_id'
-                });
+                { onConflict: 'osm_id' });
 
             if (dbError) {
                 console.error("Database Save Error:", dbError);
                 return; 
             }
 
-            // 2. Update the master data visually
             match.properties.votes[columnToIncrement] = newVoteCount; 
             
-            // 🛡️ NEW: Re-calculate the color based on Majority Rule
             const newStatus = calculateStatus(match.properties.votes);
             match.properties.marker_color = newStatus.color;
             match.properties.payment_status = newStatus.text;
             match.properties.filter_type = newStatus.type;
 
-            // 3. Mark user as "Voted" in Local Storage
             votedVenues[clickedFeature.id] = true;
             localStorage.setItem('votedVenues', JSON.stringify(votedVenues));
 
-            // 4. Refresh Map & Close Popup
             map.current.getSource('places').setData(masterData.current);
             popup.remove();
             alert("Thanks for voting!");
@@ -330,7 +277,6 @@ function App() {
 
         if (!hasVoted) {
             popupNode.querySelector('#vote-cash').addEventListener('click', () => handleVote('cash'));
-            // 7. LISTENERS: Change EC to Girocard (internal vote type)
             popupNode.querySelector('#vote-ec').addEventListener('click', () => handleVote('girocard'));
             popupNode.querySelector('#vote-card').addEventListener('click', () => handleVote('card'));
         }
@@ -344,11 +290,45 @@ function App() {
       });
   };
 
-return (
+  // ✅ THE WELCOME COMPONENT
+  const WelcomePopup = () => {
+    if (!showWelcome) return null;
+
+    return (
+      <div className="welcome-overlay">
+        <div className="welcome-box">
+          <h2>👋 Welcome to the Payment Map!</h2>
+          <p>This map is a community project to help you avoid the "Cash Only" frustration in Munich. </p>
+          <p>The status of each dot is determined by your votes:</p>
+          
+          <ul style={{ paddingLeft: '20px', listStyleType: 'none' }}>
+            <li><span style={{ color: '#00e676', fontWeight: 'bold' }}>🟢 Card:</span> Accepts modern cards (Visa, Mastercard, Apple Pay, etc.).</li>
+            <li><span style={{ color: '#ffea00', fontWeight: 'bold' }}>🟡 Girocard:</span> Accepts German bank cards (Girocard/EC) only.</li>
+            <li><span style={{ color: '#ff5252', fontWeight: 'bold' }}>🔴 Cash:</span> Primarily cash, or they are known to reject cards.</li>
+            <li><span style={{ color: '#b0bec5', fontWeight: 'bold' }}>⚪ Unknown:</span> No one has voted here yet.</li>
+          </ul>
+
+          <p>Click any dot on the map, cast your single vote, and let's make Munich a better place for card payments!</p>
+
+          <button 
+            onClick={() => {
+                setShowWelcome(false);
+                // 🛠️ FIX: Force map resize 300ms after closing popup
+                setTimeout(() => { if (map.current) map.current.resize(); }, 300);
+            }} 
+            className="close-button"
+          >
+            Start Mapping!
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  return (
     <div className="map-wrap">
       <div ref={mapContainer} className="map" />
       
-      {/* The Filter UI */}
       <div className="filter-bar">
         <button 
           className={activeFilter === 'all' ? 'active' : ''} 
@@ -372,8 +352,8 @@ return (
         </button>
       </div>
 
-      {/* ✅ Analytics is back! */}
-      <Analytics />
+      <Analytics /> 
+      <WelcomePopup />
     </div>
   );
 }
