@@ -189,3 +189,29 @@ html, body, #root {
     left: 10px;
   }
 }
+
+/* Toast Notification Popup */
+.toast-notification {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #333;
+  color: #fff;
+  padding: 12px 24px;
+  border-radius: 50px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  font-family: sans-serif;
+  font-weight: bold;
+  font-size: 14px;
+  z-index: 2000;
+  animation: slideDown 0.3s ease-out;
+  text-align: center;
+  width: max-content;
+  max-width: 90%;
+}
+
+@keyframes slideDown {
+  from { top: -50px; opacity: 0; }
+  to { top: 20px; opacity: 1; }
+}

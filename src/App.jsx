@@ -14,6 +14,7 @@ function App() {
   // State for filtering and welcome popup
   const [activeFilter, setActiveFilter] = useState('all');
   const [showWelcome, setShowWelcome] = useState(true);
+  const [toastMessage, setToastMessage] = useState(null);
 
   // 🛡️ HELPER: Majority Rule Calculation
   const calculateStatus = (votes) => {
@@ -283,7 +284,10 @@ const messages = [
             ];
             const randomMsg = messages[Math.floor(Math.random() * messages.length)];
             
-            alert(randomMsg);
+setToastMessage(randomMsg);
+            
+            // Hide the message after 3 seconds
+            setTimeout(() => { setToastMessage(null); }, 3000);
         };
 
         if (!hasVoted) {
@@ -367,6 +371,13 @@ const messages = [
 
       <Analytics /> 
       <WelcomePopup />
+
+      {toastMessage && (
+        <div className="toast-notification">
+          {toastMessage}
+        </div>
+      )}
+
     </div>
   );
 }
