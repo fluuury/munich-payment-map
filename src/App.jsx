@@ -24,13 +24,13 @@ function App() {
     const cash = votes.cash_votes || 0;
 
     if (card >= girocard && card >= cash && card > 0) {
-      return { color: '#00e676', text: `Verified: Accepts All Common Cards (${card} votes)`, type: 'card' };
+      return { color: '#34C759', text: `Verified: Accepts All Common Cards (${card} votes)`, type: 'card' };
     } 
     else if (girocard >= cash && girocard > 0) {
-      return { color: '#ffea00', text: `Verified: Girocard Only (${girocard} votes)`, type: 'girocard' };
+      return { color: '#FFCC00', text: `Verified: Girocard Only (${girocard} votes)`, type: 'girocard' };
     } 
     else if (cash > 0) {
-      return { color: '#ff5252', text: `Verified: Cash Only (${cash} votes)`, type: 'cash' };
+      return { color: '#FF3B30', text: `Verified: Cash Only (${cash} votes)`, type: 'cash' };
     }
     
     return { color: '#b0bec5', text: 'Unknown', type: 'unknown' };
@@ -120,13 +120,13 @@ function App() {
 
         if (status.type === 'unknown') {
             if (p['payment:cards'] === 'no') {
-               status = { color: '#ff5252', text: 'Cash Only (OSM)', type: 'cash' };
+               status = { color: '#FF3B30', text: 'Cash Only (OSM)', type: 'cash' };
             } 
             else if (p['payment:visa'] === 'yes' || p['payment:mastercard'] === 'yes' || p['payment:cards'] === 'yes') {
-               status = { color: '#00e676', text: 'Accepts All Common Cards (OSM)', type: 'card' };
+               status = { color: '#34C759', text: 'Accepts All Common Cards (OSM)', type: 'card' };
             } 
             else if (p['payment:girocard'] === 'yes') {
-               status = { color: '#ffea00', text: 'Girocard Only (OSM)', type: 'girocard' };
+               status = { color: '#FFCC00', text: 'Girocard Only (OSM)', type: 'girocard' };
             }
         }
 
@@ -338,10 +338,10 @@ setToastMessage(randomMsg);
           <p>The status of each dot is determined by your votes:</p>
           
           <ul style={{ paddingLeft: '20px', listStyleType: 'none' }}>
-            <li><span style={{ color: '#4CB886', fontWeight: 'bold' }}>🟢 All Common Cards:</span> Accepts most modern cards (Visa, Mastercard, Apple Pay, etc.).</li>
-            <li><span style={{ color: '#ECBA4A', fontWeight: 'bold' }}>🟡 Girocard:</span> Accepts German bank cards (Girocard/EC) only.</li>
+            <li><span style={{ color: '#34C759', fontWeight: 'bold' }}>🟢 All Common Cards:</span> Accepts most modern cards (Visa, Mastercard, Apple Pay, etc.).</li>
+            <li><span style={{ color: '#FFCC00', fontWeight: 'bold' }}>🟡 Girocard:</span> Accepts German bank cards (Girocard/EC) only.</li>
             <li><span style={{ color: '#F04A60', fontWeight: 'bold' }}>🔴 Cash:</span> Primarily cash, or they are known to reject cards.</li>
-            <li><span style={{ color: '#b0bec5', fontWeight: 'bold' }}>⚪ Unknown:</span> No one has voted here yet.</li>
+            <li><span style={{ color: '#FF3B30', fontWeight: 'bold' }}>⚪ Unknown:</span> No one has voted here yet.</li>
           </ul>
 
           <p>Click any dot on the map, cast your single vote, and let's make Munich a better place for card payments!</p>
