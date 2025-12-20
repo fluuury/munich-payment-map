@@ -363,6 +363,8 @@ const messages = [
         </button>
       </div>
 
+      <img src="/android-chrome-512x512.png" className="watermark-logo" alt="MUC-PAY Logo" />
+
       <Analytics /> 
       <WelcomePopup />
     </div>

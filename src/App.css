@@ -168,3 +168,24 @@ html, body, #root {
   color: #888;
   outline: none;
 }
+
+/* Watermark Logo Style */
+.watermark-logo {
+  position: absolute;
+  bottom: 25px;        /* Distance from bottom */
+  left: 15px;          /* Distance from left */
+  width: 60px;         /* Adjust size as needed */
+  opacity: 0.5;        /* 50% transparency */
+  z-index: 5;          /* Sits above the map tiles */
+  pointer-events: none; /* CRITICAL: Allows you to click the map "through" the image */
+  user-select: none;   /* Prevents highlighting */
+}
+
+/* Mobile Adjustment */
+@media (max-width: 600px) {
+  .watermark-logo {
+    width: 45px;       /* Smaller on mobile */
+    bottom: 30px;      /* Move up slightly to avoid overlapping map attribution */
+    left: 10px;
+  }
+}
