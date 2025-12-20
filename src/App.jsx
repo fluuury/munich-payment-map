@@ -15,6 +15,7 @@ function App() {
   const [activeFilter, setActiveFilter] = useState('all');
   const [showWelcome, setShowWelcome] = useState(true);
   const [toastMessage, setToastMessage] = useState(null);
+  const [stats, setStats] = useState({ total: 0, mapped: 0, percent: 0 });
 
   // 🛡️ HELPER: Majority Rule Calculation
   const calculateStatus = (votes) => {
@@ -134,6 +135,17 @@ function App() {
         feature.properties.filter_type = status.type;
         feature.properties.votes = votes;
       });
+
+        const totalVenues = geoJson.features.length;
+        const mappedVenues = geoJson.features.filter(f => f.properties.filter_type !== 'unknown').length;
+        const percentage = totalVenues > 0 ? Math.round((mappedVenues / totalVenues) * 100) : 0;
+
+      setStats({ 
+        total: totalVenues, 
+        mapped: mappedVenues, 
+        percent: percentage 
+      });
+
 
       masterData.current = geoJson;
 
@@ -268,6 +280,15 @@ function App() {
             match.properties.payment_status = newStatus.text;
             match.properties.filter_type = newStatus.type;
 
+            if (wasUnknown && newStatus.type !== 'unknown') {
+                setStats(prev => ({
+                    ...prev,
+                    mapped: prev.mapped + 1,
+                    percent: Math.round(((prev.mapped + 1) / prev.total) * 100)
+                }));
+            }
+
+
             votedVenues[clickedFeature.id] = true;
             localStorage.setItem('votedVenues', JSON.stringify(votedVenues));
 
@@ -365,6 +386,18 @@ setToastMessage(randomMsg);
           onClick={() => applyFilter('cash')}>
           Cash 🔴
         </button>
+      </div>
+      <div className="gamification-bar">
+        <div className="progress-text">
+          <span>Munich Progress: <strong>{stats.percent}%</strong></span>
+          <span className="details">({stats.mapped} / {stats.total} mapped)</span>
+        </div>
+        <div className="progress-track">
+          <div 
+            className="progress-fill" 
+            style={{ width: `${stats.percent}%` }}
+          ></div>
+        </div>
       </div>
 
       <img src="/android-chrome-512x512.png" className="watermark-logo" alt="MUC-PAY Logo" />
