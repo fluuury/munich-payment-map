@@ -387,6 +387,7 @@ setToastMessage(randomMsg);
           Cash 🔴
         </button>
       </div>
+
       <div className="gamification-bar">
         <div className="progress-text">
           <span>Munich Progress: <strong>{stats.percent}%</strong></span>
