@@ -2,8 +2,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import { Analytics } from '@vercel/analytics/react';
 import osmtogeojson from 'osmtogeojson';
-import MaplibreGeocoder from '@maplibre/maplibre-gl-geocoder';
-import '@maplibre/maplibre-gl-geocoder/dist/maplibre-gl-geocoder.css';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { supabase } from './supabaseClient.js';
 import './App.css';
@@ -164,31 +162,6 @@ function App() {
           'circle-color': ['get', 'marker_color']
         }
       });
-
-      // 🔍 INIT SEARCH WITH LOCAL RECOMMENDATIONS
-      const localGeocoder = (query) => {
-        const matches = [];
-        masterData.current.features.forEach((feature) => {
-          if (feature.properties.name && feature.properties.name.toLowerCase().includes(query.toLowerCase())) {
-            feature['place_name'] = `📍 ${feature.properties.name}`;
-            feature['center'] = feature.geometry.coordinates;
-            feature['place_type'] = ['poi'];
-            matches.push(feature);
-          }
-        });
-        return matches;
-      };
-
-      const geocoder = new MaplibreGeocoder({
-        maplibregl: maplibregl,
-        placeholder: 'Search for a bar/cafe...',
-        localGeocoder: localGeocoder,
-        zoom: 16,
-        proximity: { longitude: 11.5820, latitude: 48.1351 },
-        collapsed: false,
-        clearAndBlur: true
-      });
-      map.current.addControl(geocoder, 'top-left');
 
       setupPopupInteraction();
     } catch (error) {
