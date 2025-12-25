@@ -398,54 +398,53 @@ function App() {
     <div className="map-wrap">
       <div ref={mapContainer} className="map" />
       
-      {/* 📊 BOTTOM DASHBOARD */}
-      <div className="bottom-dashboard">
-        <div className="gamification-bar">
-          <div className="progress-text">
-            <span>Munich Progress: <strong>{stats.percent}%</strong></span>
-            <span className="details">{stats.mapped}/{stats.total}</span>
-          </div>
-          <div className="progress-track">
-            <div className="progress-fill" style={{ width: `${stats.percent}%` }}></div>
-          </div>
+      {/* 📊 TOP PROGRESS BAR */}
+      <div className="top-progress-bar">
+        <div className="progress-text">
+          <span>Munich Progress: <strong>{stats.percent}%</strong></span>
+          <span className="details">{stats.mapped}/{stats.total}</span>
         </div>
+        <div className="progress-track">
+          <div className="progress-fill" style={{ width: `${stats.percent}%` }}></div>
+        </div>
+      </div>
 
-        <div className="filter-section">
-          {isFilterOpen && (
-            <div className="filter-options-row">
-              <button 
-                className={activeFilter === 'all' ? 'active' : ''} 
-                onClick={() => { applyFilter('all'); setIsFilterOpen(false); }}
-              >
-                All
-              </button>
-              <button 
-                className={activeFilter === 'card' ? 'active' : ''} 
-                onClick={() => { applyFilter('card'); setIsFilterOpen(false); }}
-              >
-                Card 🟢
-              </button>
-              <button 
-                className={activeFilter === 'ec' ? 'active' : ''} 
-                onClick={() => { applyFilter('ec'); setIsFilterOpen(false); }}
-              >
-                Giro 🟡
-              </button>
-              <button 
-                className={activeFilter === 'cash' ? 'active' : ''} 
-                onClick={() => { applyFilter('cash'); setIsFilterOpen(false); }}
-              >
-                Cash 🔴
-              </button>
-            </div>
-          )}
-          <button 
-            className="filter-toggle-main" 
-            onClick={() => setIsFilterOpen(!isFilterOpen)}
-          >
-            {isFilterOpen ? 'Close ✖' : 'Filters 🌪️'}
-          </button>
-        </div>
+      {/* 🔽 BOTTOM FILTER SECTION */}
+      <div className="bottom-filter-section">
+        {isFilterOpen && (
+          <div className="filter-options-row">
+            <button 
+              className={activeFilter === 'all' ? 'active' : ''} 
+              onClick={() => { applyFilter('all'); setIsFilterOpen(false); }}
+            >
+              All
+            </button>
+            <button 
+              className={activeFilter === 'card' ? 'active' : ''} 
+              onClick={() => { applyFilter('card'); setIsFilterOpen(false); }}
+            >
+              Card 🟢
+            </button>
+            <button 
+              className={activeFilter === 'ec' ? 'active' : ''} 
+              onClick={() => { applyFilter('ec'); setIsFilterOpen(false); }}
+            >
+              Giro 🟡
+            </button>
+            <button 
+              className={activeFilter === 'cash' ? 'active' : ''} 
+              onClick={() => { applyFilter('cash'); setIsFilterOpen(false); }}
+            >
+              Cash 🔴
+            </button>
+          </div>
+        )}
+        <button 
+          className="filter-toggle-main" 
+          onClick={() => setIsFilterOpen(!isFilterOpen)}
+        >
+          {isFilterOpen ? 'Close ✖' : 'Filters 🌪️'}
+        </button>
       </div>
 
       <img src="/android-chrome-512x512.png" className="watermark-logo" alt="Logo" />
