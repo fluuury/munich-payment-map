@@ -11,7 +11,6 @@ function App() {
   const map = useRef(null);
   const masterData = useRef(null);
   
-  // State for filtering and welcome popup
   const [activeFilter, setActiveFilter] = useState('all');
   const [showWelcome, setShowWelcome] = useState(true);
   const [toastMessage, setToastMessage] = useState(null);
@@ -66,7 +65,6 @@ function App() {
     });
 
     map.current.addControl(new maplibregl.NavigationControl(), 'top-right');
-
     map.current.addControl(
       new maplibregl.GeolocateControl({
         positionOptions: { enableHighAccuracy: true },
@@ -102,9 +100,7 @@ function App() {
         .from('venue_votes')
         .select('*');
 
-      if (voteError) {
-        console.error('Error fetching votes:', voteError);
-      }
+      if (voteError) console.error('Error fetching votes:', voteError);
       
       const votesMap = new Map();
       if (voteData) {
@@ -136,17 +132,11 @@ function App() {
         feature.properties.votes = votes;
       });
 
-        const totalVenues = geoJson.features.length;
-        const mappedVenues = geoJson.features.filter(f => f.properties.filter_type !== 'unknown').length;
-        const percentage = totalVenues > 0 ? Math.round((mappedVenues / totalVenues) * 100) : 0;
+      const totalVenues = geoJson.features.length;
+      const mappedVenues = geoJson.features.filter(f => f.properties.filter_type !== 'unknown').length;
+      const percentage = totalVenues > 0 ? Math.round((mappedVenues / totalVenues) * 100) : 0;
 
-      setStats({ 
-        total: totalVenues, 
-        mapped: mappedVenues, 
-        percent: percentage 
-      });
-
-
+      setStats({ total: totalVenues, mapped: mappedVenues, percent: percentage });
       masterData.current = geoJson;
 
       if (map.current.getSource('places')) {
@@ -173,7 +163,6 @@ function App() {
       });
 
       setupPopupInteraction();
-
     } catch (error) {
       console.error("Fatal Error fetching data:", error);
     }
@@ -181,25 +170,13 @@ function App() {
 
   const applyFilter = (category) => {
     setActiveFilter(category);
-    
     if (!masterData.current) return;
 
-    let filteredFeatures;
+    let filteredFeatures = category === 'all' 
+      ? masterData.current.features 
+      : masterData.current.features.filter(f => f.properties.filter_type === category.replace('ec', 'girocard'));
 
-    if (category === 'all') {
-      filteredFeatures = masterData.current.features;
-    } else {
-      filteredFeatures = masterData.current.features.filter(f => 
-        f.properties.filter_type === category.replace('ec', 'girocard')
-      );
-    }
-
-    const filteredGeoJson = {
-      type: 'FeatureCollection',
-      features: filteredFeatures
-    };
-    
-    map.current.getSource('places').setData(filteredGeoJson);
+    map.current.getSource('places').setData({ type: 'FeatureCollection', features: filteredFeatures });
   };
 
   const setupPopupInteraction = () => {
@@ -212,7 +189,7 @@ function App() {
 
         let votes = clickedFeature.properties.votes;
         if (typeof votes === 'string') {
-             try { votes = JSON.parse(votes); } catch(e) { votes = {cash_votes:0, ec_votes:0, card_votes:0}; }
+             try { votes = JSON.parse(votes); } catch(err) { votes = {cash_votes:0, ec_votes:0, card_votes:0}; }
         }
 
         const votedVenues = JSON.parse(localStorage.getItem('votedVenues') || '{}');
@@ -220,26 +197,21 @@ function App() {
 
         const popupNode = document.createElement('div');
         
-        let buttonsHtml = '';
-        if (hasVoted) {
-            buttonsHtml = `<p style="text-align:center; color:#00e676; font-weight:bold; margin-top:10px;">✅ You voted!</p>`;
-        } else {
-            buttonsHtml = `
+        let buttonsHtml = hasVoted 
+          ? `<p style="text-align:center; color:#34C759; font-weight:bold; margin-top:10px;">✅ You voted!</p>`
+          : `
             <div style="display: flex; gap: 5px; margin-top: 10px;">
-              <button id="vote-cash" style="background:#ff5252; color:white; border:none; padding:8px; border-radius:4px; cursor:pointer; font-weight:bold;">Cash</button>
-              <button id="vote-ec" style="background:#ffea00; color:black; border:none; padding:8px; border-radius:4px; cursor:pointer; font-weight:bold;">Girocard</button>
-              <button id="vote-card" style="background:#00e676; color:white; border:none; padding:8px; border-radius:4px; cursor:pointer; font-weight:bold;">All Common Cards</button>
+              <button id="vote-cash" style="background:#FF3B30; color:white; border:none; padding:8px; border-radius:4px; cursor:pointer; font-weight:bold;">Cash</button>
+              <button id="vote-ec" style="background:#FFCC00; color:black; border:none; padding:8px; border-radius:4px; cursor:pointer; font-weight:bold;">Girocard</button>
+              <button id="vote-card" style="background:#34C759; color:white; border:none; padding:8px; border-radius:4px; cursor:pointer; font-weight:bold;">All Cards</button>
             </div>`;
-        }
 
         popupNode.innerHTML = `
           <div style="font-family: sans-serif; padding: 5px; min-width: 160px;">
             <h3 style="margin:0 0 10px; color: #000;">${name}</h3>
-            <p style="margin:0 0 5px; font-size: 13px; color: #666;">
-              Status: <strong>${currentStatus}</strong>
-            </p>
+            <p style="margin:0 0 5px; font-size: 13px; color: #666;">Status: <strong>${currentStatus}</strong></p>
             <p style="margin:0 0 10px; font-size: 11px; color: #999;">
-               Cash: <strong>${votes.cash_votes}</strong> | Girocard: <strong>${votes.ec_votes}</strong> | Card: <strong>${votes.card_votes}</strong>
+               Cash: <strong>${votes.cash_votes}</strong> | Giro: <strong>${votes.ec_votes}</strong> | Card: <strong>${votes.card_votes}</strong>
             </p>
             ${buttonsHtml}
           </div>
@@ -254,108 +226,79 @@ function App() {
             const match = masterData.current.features.find(f => f.id === clickedFeature.id);
             if (!match) return;
 
-            let columnToIncrement = `${voteType}_votes`.replace('girocard', 'ec'); 
-            let newVoteCount = match.properties.votes[columnToIncrement] + 1;
+            // FIX: Define wasUnknown before using it
+            const wasUnknown = match.properties.filter_type === 'unknown';
+
+            let col = `${voteType}_votes`.replace('girocard', 'ec'); 
+            let newCount = match.properties.votes[col] + 1;
 
             const { error: dbError } = await supabase
                 .from('venue_votes')
                 .upsert({
                     osm_id: clickedFeature.id,
                     name: match.properties.name || 'Unknown',
-                    cash_votes: voteType === 'cash' ? newVoteCount : match.properties.votes.cash_votes,
-                    ec_votes: voteType === 'girocard' ? newVoteCount : match.properties.votes.ec_votes,
-                    card_votes: voteType === 'card' ? newVoteCount : match.properties.votes.card_votes
-                }, 
-                { onConflict: 'osm_id' });
+                    cash_votes: voteType === 'cash' ? newCount : match.properties.votes.cash_votes,
+                    ec_votes: voteType === 'girocard' ? newCount : match.properties.votes.ec_votes,
+                    card_votes: voteType === 'card' ? newCount : match.properties.votes.card_votes
+                }, { onConflict: 'osm_id' });
 
             if (dbError) {
                 console.error("Database Save Error:", dbError);
                 return; 
             }
 
-            match.properties.votes[columnToIncrement] = newVoteCount; 
-            
+            match.properties.votes[col] = newCount; 
             const newStatus = calculateStatus(match.properties.votes);
             match.properties.marker_color = newStatus.color;
             match.properties.payment_status = newStatus.text;
             match.properties.filter_type = newStatus.type;
 
+            // Update stats if we just un-unknowned a place
             if (wasUnknown && newStatus.type !== 'unknown') {
-                setStats(prev => ({
-                    ...prev,
-                    mapped: prev.mapped + 1,
-                    percent: Math.round(((prev.mapped + 1) / prev.total) * 100)
-                }));
+                setStats(prev => {
+                    const newMapped = prev.mapped + 1;
+                    return { ...prev, mapped: newMapped, percent: Math.round((newMapped / prev.total) * 100) };
+                });
             }
-
 
             votedVenues[clickedFeature.id] = true;
             localStorage.setItem('votedVenues', JSON.stringify(votedVenues));
 
             map.current.getSource('places').setData(masterData.current);
+            
+            // Visual Feedback Logic
+            const messages = ["Sauber! Thanks for helping Munich. 🥨", "Vote saved! One step closer. 🚀", "Boom! Another one mapped. 👊", "You are a legend. Vote saved. ✅"];
+            setToastMessage(messages[Math.floor(Math.random() * messages.length)]);
+            
             popup.remove();
-const messages = [
-                "Sauber! Thanks for helping Munich. 🥨",
-                "Vote saved! One step closer to the 21st century. 🚀",
-                "Boom! Another one mapped. 👊",
-                "Doing the lord's work. Thanks! 🙌",
-                "Got it! Death to the ATM run. 🏃💨",
-                "You are a legend. Vote saved. ✅",
-                "Not all heroes wear capes. Some map payment methods. Thanks! 🙌"
-            ];
-            const randomMsg = messages[Math.floor(Math.random() * messages.length)];
-            
-setToastMessage(randomMsg);
-            
-            // Hide the message after 3 seconds
-            setTimeout(() => { setToastMessage(null); }, 3000);
+            setTimeout(() => setToastMessage(null), 3000);
         };
 
         if (!hasVoted) {
-            popupNode.querySelector('#vote-cash').addEventListener('click', () => handleVote('cash'));
-            popupNode.querySelector('#vote-ec').addEventListener('click', () => handleVote('girocard'));
-            popupNode.querySelector('#vote-card').addEventListener('click', () => handleVote('card'));
+            popupNode.querySelector('#vote-cash').onclick = () => handleVote('cash');
+            popupNode.querySelector('#vote-ec').onclick = () => handleVote('girocard');
+            popupNode.querySelector('#vote-card').onclick = () => handleVote('card');
         }
       });
 
-      map.current.on('mouseenter', 'places-dots', () => {
-        map.current.getCanvas().style.cursor = 'pointer';
-      });
-      map.current.on('mouseleave', 'places-dots', () => {
-        map.current.getCanvas().style.cursor = '';
-      });
+      map.current.on('mouseenter', 'places-dots', () => map.current.getCanvas().style.cursor = 'pointer');
+      map.current.on('mouseleave', 'places-dots', () => map.current.getCanvas().style.cursor = '');
   };
 
-  // ✅ THE WELCOME COMPONENT
   const WelcomePopup = () => {
     if (!showWelcome) return null;
-
     return (
       <div className="welcome-overlay">
         <div className="welcome-box">
-          <h2>👋 Welcome to the Munich Payment Map!</h2>
-          <p>This map is a community project to help you avoid the "Cash Only" frustration in Munich. </p>
-          <p>The status of each dot is determined by your votes:</p>
-          
+          <h2>👋 Welcome to MUC-PAY!</h2>
+          <p>Help us avoid "Cash Only" frustration in Munich.</p>
           <ul style={{ paddingLeft: '20px', listStyleType: 'none' }}>
-            <li><span style={{ color: '#34C759', fontWeight: 'bold' }}>🟢 All Common Cards:</span> Accepts most modern cards (Visa, Mastercard, Apple Pay, etc.).</li>
-            <li><span style={{ color: '#FFCC00', fontWeight: 'bold' }}>🟡 Girocard:</span> Accepts German bank cards (Girocard/EC) only.</li>
-            <li><span style={{ color: '#F04A60', fontWeight: 'bold' }}>🔴 Cash:</span> Primarily cash, or they are known to reject cards.</li>
-            <li><span style={{ color: '#FF3B30', fontWeight: 'bold' }}>⚪ Unknown:</span> No one has voted here yet.</li>
+            <li><span style={{ color: '#34C759', fontWeight: 'bold' }}>🟢 All Cards:</span> Accepts modern cards & Apple Pay.</li>
+            <li><span style={{ color: '#FFCC00', fontWeight: 'bold' }}>🟡 Girocard:</span> German EC cards only.</li>
+            <li><span style={{ color: '#FF3B30', fontWeight: 'bold' }}>🔴 Cash:</span> Primarily cash.</li>
+            <li><span style={{ color: '#b0bec5', fontWeight: 'bold' }}>⚪ Unknown:</span> Needs your vote!</li>
           </ul>
-
-          <p>Click any dot on the map, cast your single vote, and let's make Munich a better place for card payments!</p>
-
-          <button 
-            onClick={() => {
-                setShowWelcome(false);
-                // 🛠️ FIX: Force map resize 300ms after closing popup
-                setTimeout(() => { if (map.current) map.current.resize(); }, 300);
-            }} 
-            className="close-button"
-          >
-            Start Mapping!
-          </button>
+          <button onClick={() => { setShowWelcome(false); setTimeout(() => map.current.resize(), 300); }} className="close-button">Start Mapping!</button>
         </div>
       </div>
     );
@@ -364,54 +307,20 @@ setToastMessage(randomMsg);
   return (
     <div className="map-wrap">
       <div ref={mapContainer} className="map" />
-      
       <div className="filter-bar">
-        <button 
-          className={activeFilter === 'all' ? 'active' : ''} 
-          onClick={() => applyFilter('all')}>
-          All
-        </button>
-        <button 
-          className={activeFilter === 'card' ? 'active' : ''} 
-          onClick={() => applyFilter('card')}>
-          All Common Cards 🟢
-        </button>
-        <button 
-          className={activeFilter === 'ec' ? 'active' : ''} 
-          onClick={() => applyFilter('ec')}>
-          Girocard 🟡
-        </button>
-        <button 
-          className={activeFilter === 'cash' ? 'active' : ''} 
-          onClick={() => applyFilter('cash')}>
-          Cash 🔴
-        </button>
+        <button className={activeFilter === 'all' ? 'active' : ''} onClick={() => applyFilter('all')}>All</button>
+        <button className={activeFilter === 'card' ? 'active' : ''} onClick={() => applyFilter('card')}>All Cards 🟢</button>
+        <button className={activeFilter === 'ec' ? 'active' : ''} onClick={() => applyFilter('ec')}>Girocard 🟡</button>
+        <button className={activeFilter === 'cash' ? 'active' : ''} onClick={() => applyFilter('cash')}>Cash 🔴</button>
       </div>
-
       <div className="gamification-bar">
-        <div className="progress-text">
-          <span>Munich Progress: <strong>{stats.percent}%</strong></span>
-          <span className="details">({stats.mapped} / {stats.total} mapped)</span>
-        </div>
-        <div className="progress-track">
-          <div 
-            className="progress-fill" 
-            style={{ width: `${stats.percent}%` }}
-          ></div>
-        </div>
+        <div className="progress-text"><span>Munich Progress: <strong>{stats.percent}%</strong></span><span className="details">({stats.mapped} / {stats.total} mapped)</span></div>
+        <div className="progress-track"><div className="progress-fill" style={{ width: `${stats.percent}%` }}></div></div>
       </div>
-
-      <img src="/android-chrome-512x512.png" className="watermark-logo" alt="MUC-PAY Logo" />
-
+      <img src="/android-chrome-512x512.png" className="watermark-logo" alt="Logo" />
       <Analytics /> 
       <WelcomePopup />
-
-      {toastMessage && (
-        <div className="toast-notification">
-          {toastMessage}
-        </div>
-      )}
-
+      {toastMessage && <div className="toast-notification">{toastMessage}</div>}
     </div>
   );
 }
