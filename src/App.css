@@ -36,7 +36,7 @@ html, body, #root {
   border-radius: 12px;
   margin-top: 15px !important;
   margin-left: 15px !important;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.15) !important;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15) !important;
   border: none !important;
 }
 
@@ -63,9 +63,10 @@ html, body, #root {
   pointer-events: auto;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px); /* Safari support */
   padding: 12px 15px;
   border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -79,11 +80,28 @@ html, body, #root {
   color: #333;
 }
 
-.progress-text strong { color: #007AFF; }
-.progress-text .details { font-size: 11px; color: #888; }
+.progress-text strong { 
+  color: #007AFF; 
+}
 
-.progress-track { width: 100%; height: 8px; background: #E5E5EA; border-radius: 4px; overflow: hidden; }
-.progress-fill { height: 100%; background: linear-gradient(90deg, #00C7BE, #007AFF); transition: width 1s ease-in-out; }
+.progress-text .details { 
+  font-size: 11px; 
+  color: #888; 
+}
+
+.progress-track { 
+  width: 100%; 
+  height: 8px; 
+  background: #E5E5EA; 
+  border-radius: 4px; 
+  overflow: hidden; 
+}
+
+.progress-fill { 
+  height: 100%; 
+  background: linear-gradient(90deg, #00C7BE, #007AFF); 
+  transition: width 1s ease-in-out; 
+}
 
 /* Collapsible Filter Section */
 .filter-section {
@@ -102,18 +120,28 @@ html, body, #root {
   border-radius: 30px;
   font-weight: bold;
   font-size: 14px;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
   cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.filter-toggle-main:hover {
+  transform: scale(1.05);
+}
+
+.filter-toggle-main:active {
+  transform: scale(0.95);
 }
 
 .filter-options-row {
   display: flex;
   gap: 6px;
   background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px); /* Safari support */
   padding: 8px;
   border-radius: 12px;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-  backdrop-filter: blur(5px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
   animation: slideUp 0.2s ease-out;
 }
 
@@ -125,6 +153,11 @@ html, body, #root {
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filter-options-row button:hover {
+  background: #f5f5f5;
 }
 
 .filter-options-row button.active {
@@ -139,17 +172,18 @@ html, body, #root {
 .welcome-overlay {
   position: fixed;
   inset: 0;
-  background-color: rgba(0, 0, 0, 0.75); /* Slightly darker background for better contrast */
+  background-color: rgba(0, 0, 0, 0.75);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 2000;
   backdrop-filter: blur(4px);
-  padding: 20px; /* Ensures box doesn't touch screen edges on small phones */
+  -webkit-backdrop-filter: blur(4px); /* Safari support */
+  padding: 20px;
 }
 
 .welcome-box {
-  background-color: #ffffff !important; /* Force solid white background */
+  background-color: #ffffff !important;
   padding: 30px;
   border-radius: 20px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
@@ -158,20 +192,19 @@ html, body, #root {
   line-height: 1.6;
   max-height: 85svh;
   overflow-y: auto;
-  /* ⚠️ CRITICAL FIX FOR MOBILE TEXT COLOR ⚠️ */
-  color: #333333 !important; 
+  color: #333333 !important;
+  /* Smooth scrolling for better UX */
+  -webkit-overflow-scrolling: touch;
 }
 
 .welcome-box h2 {
   margin-top: 0;
   font-size: 1.6em;
-  /* ⚠️ CRITICAL FIX ⚠️ */
   color: #000000 !important;
   border-bottom: 2px solid #f0f0f0;
   padding-bottom: 10px;
 }
 
-/* ⚠️ CRITICAL FIX: Target paragraphs and lists directly ⚠️ */
 .welcome-box p, 
 .welcome-box ul, 
 .welcome-box li {
@@ -182,13 +215,22 @@ html, body, #root {
   width: 100%;
   padding: 14px;
   background-color: #333;
-  color: white !important; /* Ensure button text stays white */
+  color: white !important;
   border: none;
   border-radius: 12px;
   font-size: 1.1em;
   font-weight: bold;
   cursor: pointer;
   margin-top: 15px;
+  transition: background-color 0.2s ease;
+}
+
+.close-button:hover {
+  background-color: #555;
+}
+
+.close-button:active {
+  background-color: #222;
 }
 
 /* ---------------------------------- */
@@ -196,7 +238,7 @@ html, body, #root {
 /* ---------------------------------- */
 .toast-notification {
   position: fixed;
-  top: 85px; /* Sits right below the search bar */
+  top: 85px;
   left: 50%;
   transform: translateX(-50%);
   background-color: #333;
@@ -207,7 +249,7 @@ html, body, #root {
   font-weight: bold;
   font-size: 14px;
   animation: slideDown 0.3s ease-out;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
   width: max-content;
   max-width: 85%;
   text-align: center;
@@ -216,33 +258,49 @@ html, body, #root {
 .maplibregl-popup-content {
   border-radius: 12px;
   padding: 12px;
-  box-shadow: 0 2px 15px rgba(0,0,0,0.2);
+  box-shadow: 0 2px 15px rgba(0, 0, 0, 0.2);
 }
 
 /* Watermark Logo - Bottom Left */
 .watermark-logo {
   position: absolute;
-  bottom: 20px; /* Changed from top to bottom */
-  left: 20px;   /* Changed from right to left */
+  bottom: 20px;
+  left: 20px;
   width: 50px;
   opacity: 0.5;
   z-index: 5;
   pointer-events: none;
+  transition: opacity 0.2s ease;
 }
 
 /* ---------------------------------- */
 /* 6. ANIMATIONS & MOBILE             */
 /* ---------------------------------- */
 @keyframes slideUp {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { 
+    opacity: 0; 
+    transform: translateY(10px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0); 
+  }
 }
 
 @keyframes slideDown {
-  from { top: -50px; opacity: 0; }
-  to { top: 85px; opacity: 1; }
+  from { 
+    top: -50px; 
+    opacity: 0; 
+  }
+  to { 
+    top: 85px; 
+    opacity: 1; 
+  }
 }
 
+/* ---------------------------------- */
+/* 7. MOBILE RESPONSIVE               */
+/* ---------------------------------- */
 @media (max-width: 600px) {
   .maplibregl-ctrl-geocoder {
     min-width: calc(100vw - 30px);
@@ -258,5 +316,42 @@ html, body, #root {
     width: 40px;
     bottom: 20px;
     left: 15px;
+  }
+
+  .welcome-box {
+    padding: 20px;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .welcome-box h2 {
+    font-size: 1.4em;
+  }
+
+  .filter-options-row {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .filter-options-row button {
+    font-size: 12px;
+    padding: 6px 10px;
+  }
+}
+
+/* ---------------------------------- */
+/* 8. ACCESSIBILITY IMPROVEMENTS      */
+/* ---------------------------------- */
+button:focus-visible {
+  outline: 2px solid #007AFF;
+  outline-offset: 2px;
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
