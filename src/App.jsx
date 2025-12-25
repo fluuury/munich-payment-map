@@ -142,7 +142,7 @@ function App() {
 
   // Setup popup interaction (memoized)
   const setupPopupInteraction = useCallback(() => {
-    const handleClick = async (e) => {
+    const handleClick = (e) => {
       const clickedFeature = e.features[0]; 
       const coordinates = clickedFeature.geometry.coordinates.slice();
       const name = clickedFeature.properties.name || "Unknown Place";
@@ -197,70 +197,89 @@ function App() {
 
       // Handle voting
       const handleVote = async (voteType) => {
-        const match = masterData.current.features.find(f => f.id === clickedFeature.id);
-        if (!match) return;
+        try {
+          const match = masterData.current.features.find(f => f.id === clickedFeature.id);
+          if (!match) {
+            console.error('Feature not found in masterData');
+            return;
+          }
 
-        const wasUnknown = match.properties.filter_type === 'unknown';
+          const wasUnknown = match.properties.filter_type === 'unknown';
 
-        const col = `${voteType}_votes`.replace('girocard', 'ec'); 
-        const newCount = match.properties.votes[col] + 1;
+          const col = `${voteType}_votes`.replace('girocard', 'ec'); 
+          const newCount = match.properties.votes[col] + 1;
 
-        // Update database
-        const { error: dbError } = await supabase
-          .from('venue_votes')
-          .upsert({
+          console.log('Attempting to save vote:', {
             osm_id: clickedFeature.id,
-            name: match.properties.name || 'Unknown',
-            cash_votes: voteType === 'cash' ? newCount : match.properties.votes.cash_votes,
-            ec_votes: voteType === 'girocard' ? newCount : match.properties.votes.ec_votes,
-            card_votes: voteType === 'card' ? newCount : match.properties.votes.card_votes
-          }, { onConflict: 'osm_id' });
-
-        if (dbError) {
-          console.error("Database Save Error:", dbError);
-          return; 
-        }
-
-        // Update local data
-        match.properties.votes[col] = newCount; 
-        const newStatus = calculateStatus(match.properties.votes);
-        match.properties.marker_color = newStatus.color;
-        match.properties.payment_status = newStatus.text;
-        match.properties.filter_type = newStatus.type;
-
-        // Update stats if venue went from unknown to known
-        if (wasUnknown && newStatus.type !== 'unknown') {
-          setStats(prev => {
-            const newMapped = prev.mapped + 1;
-            return { 
-              total: prev.total,
-              mapped: newMapped, 
-              percent: Math.round((newMapped / prev.total) * 100) 
-            };
+            voteType,
+            col,
+            newCount
           });
+
+          // Update database
+          const { data: upsertData, error: dbError } = await supabase
+            .from('venue_votes')
+            .upsert({
+              osm_id: clickedFeature.id,
+              name: match.properties.name || 'Unknown',
+              cash_votes: voteType === 'cash' ? newCount : match.properties.votes.cash_votes,
+              ec_votes: voteType === 'girocard' ? newCount : match.properties.votes.ec_votes,
+              card_votes: voteType === 'card' ? newCount : match.properties.votes.card_votes
+            }, { onConflict: 'osm_id' });
+
+          if (dbError) {
+            console.error("Database Save Error:", dbError);
+            alert('Failed to save vote. Please try again.');
+            return; 
+          }
+
+          console.log('Vote saved successfully:', upsertData);
+
+          // Update local data
+          match.properties.votes[col] = newCount; 
+          const newStatus = calculateStatus(match.properties.votes);
+          match.properties.marker_color = newStatus.color;
+          match.properties.payment_status = newStatus.text;
+          match.properties.filter_type = newStatus.type;
+
+          // Update stats if venue went from unknown to known
+          if (wasUnknown && newStatus.type !== 'unknown') {
+            setStats(prev => {
+              const newMapped = prev.mapped + 1;
+              return { 
+                total: prev.total,
+                mapped: newMapped, 
+                percent: Math.round((newMapped / prev.total) * 100) 
+              };
+            });
+          }
+
+          // Save vote to localStorage
+          const updatedVotedVenues = JSON.parse(localStorage.getItem('votedVenues') || '{}');
+          updatedVotedVenues[clickedFeature.id] = true;
+          localStorage.setItem('votedVenues', JSON.stringify(updatedVotedVenues));
+
+          // Update map
+          map.current.getSource('places').setData(masterData.current);
+          
+          // Show random toast message
+          const messages = [
+            "Sauber! Thanks for helping Munich. 🥨",
+            "Vote saved! One step closer to the 21st century. 🚀",
+            "Boom! Another one mapped. 👊",
+            "Doing the lord's work. Thanks! 🙌",
+            "Got it! Death to the ATM run. 🏃💨",
+            "You are a legend. Vote saved. ✅",
+            "Not all heroes wear capes. Some map payment methods. 🙌"
+          ];
+          setToastMessage(messages[Math.floor(Math.random() * messages.length)]);
+          
+          popup.remove();
+          setTimeout(() => setToastMessage(null), 3000);
+        } catch (error) {
+          console.error('Error in handleVote:', error);
+          alert('An error occurred while saving your vote.');
         }
-
-        // Save vote to localStorage
-        votedVenues[clickedFeature.id] = true;
-        localStorage.setItem('votedVenues', JSON.stringify(votedVenues));
-
-        // Update map
-        map.current.getSource('places').setData(masterData.current);
-        
-        // Show random toast message
-        const messages = [
-          "Sauber! Thanks for helping Munich. 🥨",
-          "Vote saved! One step closer to the 21st century. 🚀",
-          "Boom! Another one mapped. 👊",
-          "Doing the lord's work. Thanks! 🙌",
-          "Got it! Death to the ATM run. 🏃💨",
-          "You are a legend. Vote saved. ✅",
-          "Not all heroes wear capes. Some map payment methods. 🙌"
-        ];
-        setToastMessage(messages[Math.floor(Math.random() * messages.length)]);
-        
-        popup.remove();
-        setTimeout(() => setToastMessage(null), 3000);
       };
 
       // Attach event listeners
@@ -286,7 +305,7 @@ function App() {
     map.current.on('mouseleave', 'places-dots', () => {
       map.current.getCanvas().style.cursor = '';
     });
-  }, [calculateStatus]);
+  }, [calculateStatus, setStats, setToastMessage]);
 
   // Apply filter (memoized)
   const applyFilter = useCallback((category) => {
