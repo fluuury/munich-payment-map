@@ -1,23 +1,20 @@
 /* ---------------------------------- */
-/* RESET & BASE STYLES */
+/* 1. RESET & BASE STYLES             */
 /* ---------------------------------- */
 html, body, #root {
   margin: 0;
   padding: 0;
   width: 100%;
   height: 100%;
-  overflow: hidden; /* Prevent scrolling on the body */
+  overflow: hidden; /* Important for full-screen maps */
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  -webkit-tap-highlight-color: transparent; /* Removes grey tap box on iPhone */
+  -webkit-tap-highlight-color: transparent;
 }
 
-/* ---------------------------------- */
-/* MAP CONTAINER */
-/* ---------------------------------- */
 .map-wrap {
   position: relative;
   width: 100%;
-  /* The iPhone Fix: svh = Smallest Viewport Height (fits inside the bars) */
+  /* svh handles mobile browser bars much better than vh */
   height: 100vh; 
   height: 100svh; 
   overflow: hidden;
@@ -32,245 +29,223 @@ html, body, #root {
 }
 
 /* ---------------------------------- */
-/* 1. FILTER BAR (Primary - Top) */
+/* 2. SEARCH BAR (Top Left)           */
 /* ---------------------------------- */
-.filter-bar {
+.maplibregl-ctrl-geocoder {
+  min-width: 280px;
+  border-radius: 12px;
+  margin-top: 15px !important;
+  margin-left: 15px !important;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.15) !important;
+  border: none !important;
+}
+
+/* ---------------------------------- */
+/* 3. BOTTOM DASHBOARD (Floating)     */
+/* ---------------------------------- */
+.bottom-dashboard {
   position: absolute;
-  top: 15px;          /* Sits at the very top */
+  bottom: 40px; 
   left: 50%;
   transform: translateX(-50%);
-  z-index: 100;       /* Highest priority */
-  background: rgba(255, 255, 255, 0.95);
-  padding: 8px;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-  display: flex;
-  gap: 8px;
-  white-space: nowrap;
-  max-width: 95%;
-  overflow-x: auto;   /* Scrollable on small phones */
-  -webkit-overflow-scrolling: touch;
-}
-
-.filter-bar button {
-  border: 1px solid #ddd;
-  background: white;
-  padding: 6px 12px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 500;
-  transition: all 0.2s;
-}
-
-.filter-bar button.active {
-  background: #333;
-  color: white;
-  border-color: #333;
-}
-
-/* ---------------------------------- */
-/* 2. GAMIFICATION BAR (Secondary - Below) */
-/* ---------------------------------- */
-.gamification-bar {
-  position: absolute;
-  top: 75px;           /* Sits below the filter bar */
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 90;         /* Lower priority than buttons */
-  
-  background: rgba(255, 255, 255, 0.85);
-  padding: 6px 12px;
-  border-radius: 20px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  width: 90%;
+  max-width: 400px;
+  z-index: 100;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  width: 260px;
-  backdrop-filter: blur(3px);
-  pointer-events: none; /* TRICK: Click through empty areas to map */
+  gap: 12px;
+  /* Clicks go through to map between buttons, important for logo overlap */
+  pointer-events: none; 
+}
+
+/* Permanent Progress Bar */
+.gamification-bar {
+  pointer-events: auto;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  padding: 12px 15px;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .progress-text {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-family: sans-serif;
-  font-size: 12px;
+  font-size: 13px;
   color: #333;
 }
 
-.progress-text strong {
-  color: #007AFF;
+.progress-text strong { color: #007AFF; }
+.progress-text .details { font-size: 11px; color: #888; }
+
+.progress-track { width: 100%; height: 8px; background: #E5E5EA; border-radius: 4px; overflow: hidden; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, #00C7BE, #007AFF); transition: width 1s ease-in-out; }
+
+/* Collapsible Filter Section */
+.filter-section {
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
 }
 
-.progress-text .details {
-  font-size: 11px;
-  color: #888;
-}
-
-.progress-track {
-  width: 100%;
-  height: 6px;
-  background-color: #E5E5EA;
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #00C7BE, #007AFF);
-  border-radius: 3px;
-  transition: width 1s ease-in-out;
-}
-
-/* ---------------------------------- */
-/* MAP CONTROLS & POPUPS */
-/* ---------------------------------- */
-.maplibregl-ctrl-bottom-right {
-  bottom: 40px !important; 
-  right: 10px !important;
-}
-
-.maplibregl-popup-content {
-  border-radius: 8px;
-  padding: 10px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+.filter-toggle-main {
+  background: #333;
+  color: white;
+  border: none;
+  padding: 10px 25px;
+  border-radius: 30px;
+  font-weight: bold;
   font-size: 14px;
-  line-height: 1.4;
-  max-width: 240px !important;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+  cursor: pointer;
 }
 
-.maplibregl-popup-close-button {
-  font-size: 18px;
-  padding: 4px 8px;
-  color: #888;
-  outline: none;
+.filter-options-row {
+  display: flex;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 8px;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  backdrop-filter: blur(5px);
+  animation: slideUp 0.2s ease-out;
+}
+
+.filter-options-row button {
+  border: 1px solid #eee;
+  background: white;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.filter-options-row button.active {
+  background: #333;
+  color: white;
+  border-color: #333;
 }
 
 /* ---------------------------------- */
-/* WELCOME POPUP */
+/* 4. WELCOME OVERLAY (Spacious)      */
 /* ---------------------------------- */
 .welcome-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  inset: 0;
   background-color: rgba(0, 0, 0, 0.7);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 2000;
-  backdrop-filter: blur(2px);
+  backdrop-filter: blur(4px);
 }
 
 .welcome-box {
   background-color: white;
-  color: #333;
-  padding: 25px 25px;
-  border-radius: 12px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+  padding: 30px;
+  border-radius: 20px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
   max-width: 90%;
-  width: 400px;
-  text-align: left;
-  line-height: 1.5;
-  max-height: 85vh; 
-  max-height: 85svh;
-  overflow-y: auto; 
+  width: 420px;
+  line-height: 1.6;
+  max-height: 85svh; /* Prevent overflow on small screens */
+  overflow-y: auto;
 }
 
 .welcome-box h2 {
   margin-top: 0;
-  font-size: 1.5em;
-  border-bottom: 1px solid #eee;
-  padding-bottom: 10px;
-  margin-bottom: 15px;
+  font-size: 1.6em;
   color: #000;
-}
-
-.welcome-box p, .welcome-box ul li {
-  font-size: 0.95em;
-  margin-bottom: 5px;
-}
-
-.welcome-box ul {
-  padding-left: 20px;
-  margin-bottom: 15px;
+  border-bottom: 2px solid #f0f0f0;
+  padding-bottom: 10px;
 }
 
 .close-button {
   width: 100%;
-  padding: 12px;
-  margin-top: 10px;
-  background-color: #3f51b5;
+  padding: 14px;
+  background-color: #333;
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: 12px;
   font-size: 1.1em;
   font-weight: bold;
   cursor: pointer;
-  margin-bottom: 5px;
+  margin-top: 15px;
 }
 
 /* ---------------------------------- */
-/* EXTRAS: Watermark & Toast */
+/* 5. TOAST & POPUPS                  */
 /* ---------------------------------- */
-.watermark-logo {
-  position: absolute;
-  bottom: 25px;
-  left: 15px;
-  width: 60px;
-  opacity: 0.5;
-  z-index: 5;
-  pointer-events: none;
-  user-select: none;
-}
-
 .toast-notification {
   position: fixed;
-  top: 20px;
+  top: 85px; /* Sits right below the search bar */
   left: 50%;
   transform: translateX(-50%);
   background-color: #333;
   color: #fff;
   padding: 12px 24px;
   border-radius: 50px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-  font-family: sans-serif;
+  z-index: 2100;
   font-weight: bold;
   font-size: 14px;
-  z-index: 2000;
   animation: slideDown 0.3s ease-out;
-  text-align: center;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
   width: max-content;
-  max-width: 90%;
+  max-width: 85%;
+  text-align: center;
+}
+
+.maplibregl-popup-content {
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: 0 2px 15px rgba(0,0,0,0.2);
+}
+
+/* Watermark Logo - Bottom Left */
+.watermark-logo {
+  position: absolute;
+  bottom: 20px; /* Changed from top to bottom */
+  left: 20px;   /* Changed from right to left */
+  width: 50px;
+  opacity: 0.5;
+  z-index: 5;
+  pointer-events: none;
+}
+
+/* ---------------------------------- */
+/* 6. ANIMATIONS & MOBILE             */
+/* ---------------------------------- */
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes slideDown {
   from { top: -50px; opacity: 0; }
-  to { top: 20px; opacity: 1; }
+  to { top: 85px; opacity: 1; }
 }
 
-/* ---------------------------------- */
-/* MOBILE OVERRIDES */
-/* ---------------------------------- */
 @media (max-width: 600px) {
-  .watermark-logo {
-    width: 45px;
-    bottom: 30px;
-    left: 10px;
-  }
-
-  .filter-bar {
-    top: 10px;         /* Close to top */
-    width: 95%;        
-    overflow-x: auto;  
-    justify-content: flex-start;
+  .maplibregl-ctrl-geocoder {
+    min-width: calc(100vw - 30px);
+    margin: 10px !important;
   }
   
-  .gamification-bar {
-    top: 65px;         /* Tucked right under the buttons */
-    width: 85%;
+  .bottom-dashboard {
+    bottom: 30px;
+    width: 95%;
+  }
+
+  .watermark-logo {
+    width: 40px;
+    bottom: 20px;
+    left: 15px;
   }
 }

@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import { Analytics } from '@vercel/analytics/react';
 import osmtogeojson from 'osmtogeojson';
+import MaplibreGeocoder from '@maplibre/maplibre-gl-geocoder';
+import '@maplibre/maplibre-gl-geocoder/dist/maplibre-gl-geocoder.css';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { supabase } from './supabaseClient.js';
 import './App.css';
@@ -13,6 +15,7 @@ function App() {
   
   const [activeFilter, setActiveFilter] = useState('all');
   const [showWelcome, setShowWelcome] = useState(true);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
   const [stats, setStats] = useState({ total: 0, mapped: 0, percent: 0 });
 
@@ -162,6 +165,31 @@ function App() {
         }
       });
 
+      // 🔍 INIT SEARCH WITH LOCAL RECOMMENDATIONS
+      const localGeocoder = (query) => {
+        const matches = [];
+        masterData.current.features.forEach((feature) => {
+          if (feature.properties.name && feature.properties.name.toLowerCase().includes(query.toLowerCase())) {
+            feature['place_name'] = `📍 ${feature.properties.name}`;
+            feature['center'] = feature.geometry.coordinates;
+            feature['place_type'] = ['poi'];
+            matches.push(feature);
+          }
+        });
+        return matches;
+      };
+
+      const geocoder = new MaplibreGeocoder({
+        maplibregl: maplibregl,
+        placeholder: 'Search for a bar/cafe...',
+        localGeocoder: localGeocoder,
+        zoom: 16,
+        proximity: { longitude: 11.5820, latitude: 48.1351 },
+        collapsed: false,
+        clearAndBlur: true
+      });
+      map.current.addControl(geocoder, 'top-left');
+
       setupPopupInteraction();
     } catch (error) {
       console.error("Fatal Error fetching data:", error);
@@ -226,7 +254,6 @@ function App() {
             const match = masterData.current.features.find(f => f.id === clickedFeature.id);
             if (!match) return;
 
-            // FIX: Define wasUnknown before using it
             const wasUnknown = match.properties.filter_type === 'unknown';
 
             let col = `${voteType}_votes`.replace('girocard', 'ec'); 
@@ -253,7 +280,6 @@ function App() {
             match.properties.payment_status = newStatus.text;
             match.properties.filter_type = newStatus.type;
 
-            // Update stats if we just un-unknowned a place
             if (wasUnknown && newStatus.type !== 'unknown') {
                 setStats(prev => {
                     const newMapped = prev.mapped + 1;
@@ -266,8 +292,16 @@ function App() {
 
             map.current.getSource('places').setData(masterData.current);
             
-            // Visual Feedback Logic
-            const messages = ["Sauber! Thanks for helping Munich. 🥨", "Vote saved! One step closer. 🚀", "Boom! Another one mapped. 👊", "You are a legend. Vote saved. ✅"];
+            // Random Toast Messages Restored
+            const messages = [
+                "Sauber! Thanks for helping Munich. 🥨",
+                "Vote saved! One step closer to the 21st century. 🚀",
+                "Boom! Another one mapped. 👊",
+                "Doing the lord's work. Thanks! 🙌",
+                "Got it! Death to the ATM run. 🏃💨",
+                "You are a legend. Vote saved. ✅",
+                "Not all heroes wear capes. Some map payment methods. 🙌"
+            ];
             setToastMessage(messages[Math.floor(Math.random() * messages.length)]);
             
             popup.remove();
@@ -291,13 +325,15 @@ function App() {
       <div className="welcome-overlay">
         <div className="welcome-box">
           <h2>👋 Welcome to MUC-PAY!</h2>
-          <p>Help us avoid "Cash Only" frustration in Munich.</p>
-          <ul style={{ paddingLeft: '20px', listStyleType: 'none' }}>
-            <li><span style={{ color: '#34C759', fontWeight: 'bold' }}>🟢 All Cards:</span> Accepts modern cards & Apple Pay.</li>
-            <li><span style={{ color: '#FFCC00', fontWeight: 'bold' }}>🟡 Girocard:</span> German EC cards only.</li>
-            <li><span style={{ color: '#FF3B30', fontWeight: 'bold' }}>🔴 Cash:</span> Primarily cash.</li>
-            <li><span style={{ color: '#b0bec5', fontWeight: 'bold' }}>⚪ Unknown:</span> Needs your vote!</li>
+          <p>This map is a community project to help you avoid the "Cash Only" frustration in Munich. </p>
+          <p>The status of each dot is determined by your votes:</p>
+          <ul style={{ paddingLeft: '20px', listStyleType: 'none', margin: '15px 0' }}>
+            <li style={{ marginBottom: '8px' }}><span style={{ color: '#34C759', fontWeight: 'bold' }}>🟢 All Common Cards:</span> Accepts most modern cards (Visa, Mastercard, Apple Pay, etc.).</li>
+            <li style={{ marginBottom: '8px' }}><span style={{ color: '#FFCC00', fontWeight: 'bold' }}>🟡 Girocard:</span> Accepts German bank cards (Girocard/EC) only.</li>
+            <li style={{ marginBottom: '8px' }}><span style={{ color: '#FF3B30', fontWeight: 'bold' }}>🔴 Cash:</span> Primarily cash, or they are known to reject cards.</li>
+            <li style={{ marginBottom: '8px' }}><span style={{ color: '#b0bec5', fontWeight: 'bold' }}>⚪ Unknown:</span> No one has voted here yet.</li>
           </ul>
+          <p>Click any dot on the map, cast your single vote, and let's make Munich a better place for card payments!</p>
           <button onClick={() => { setShowWelcome(false); setTimeout(() => map.current.resize(), 300); }} className="close-button">Start Mapping!</button>
         </div>
       </div>
@@ -307,16 +343,32 @@ function App() {
   return (
     <div className="map-wrap">
       <div ref={mapContainer} className="map" />
-      <div className="filter-bar">
-        <button className={activeFilter === 'all' ? 'active' : ''} onClick={() => applyFilter('all')}>All</button>
-        <button className={activeFilter === 'card' ? 'active' : ''} onClick={() => applyFilter('card')}>All Cards 🟢</button>
-        <button className={activeFilter === 'ec' ? 'active' : ''} onClick={() => applyFilter('ec')}>Girocard 🟡</button>
-        <button className={activeFilter === 'cash' ? 'active' : ''} onClick={() => applyFilter('cash')}>Cash 🔴</button>
+      
+      {/* 📊 BOTTOM DASHBOARD */}
+      <div className="bottom-dashboard">
+        <div className="gamification-bar">
+          <div className="progress-text">
+            <span>Munich Progress: <strong>{stats.percent}%</strong></span>
+            <span className="details">{stats.mapped}/{stats.total}</span>
+          </div>
+          <div className="progress-track"><div className="progress-fill" style={{ width: `${stats.percent}%` }}></div></div>
+        </div>
+
+        <div className="filter-section">
+          {isFilterOpen && (
+            <div className="filter-options-row">
+              <button className={activeFilter === 'all' ? 'active' : ''} onClick={() => { applyFilter('all'); setIsFilterOpen(false); }}>All</button>
+              <button className={activeFilter === 'card' ? 'active' : ''} onClick={() => { applyFilter('card'); setIsFilterOpen(false); }}>Card 🟢</button>
+              <button className={activeFilter === 'ec' ? 'active' : ''} onClick={() => { applyFilter('ec'); setIsFilterOpen(false); }}>Giro 🟡</button>
+              <button className={activeFilter === 'cash' ? 'active' : ''} onClick={() => { applyFilter('cash'); setIsFilterOpen(false); }}>Cash 🔴</button>
+            </div>
+          )}
+          <button className="filter-toggle-main" onClick={() => setIsFilterOpen(!isFilterOpen)}>
+            {isFilterOpen ? 'Close ✖' : 'Filters 🌪️'}
+          </button>
+        </div>
       </div>
-      <div className="gamification-bar">
-        <div className="progress-text"><span>Munich Progress: <strong>{stats.percent}%</strong></span><span className="details">({stats.mapped} / {stats.total} mapped)</span></div>
-        <div className="progress-track"><div className="progress-fill" style={{ width: `${stats.percent}%` }}></div></div>
-      </div>
+
       <img src="/android-chrome-512x512.png" className="watermark-logo" alt="Logo" />
       <Analytics /> 
       <WelcomePopup />
