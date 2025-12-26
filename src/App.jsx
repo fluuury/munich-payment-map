@@ -60,20 +60,41 @@ function App() {
       const data = await response.json();
       const geoJson = osmtogeojson(data);
 
-      // Fetch votes from Supabase
-      const { data: voteData, error: voteError } = await supabase
-        .from('venue_votes')
-        .select('*');
+      // Fetch ALL votes from Supabase (with pagination to handle >1000 records)
+      let allVotes = [];
+      let from = 0;
+      const pageSize = 1000;
+      let hasMore = true;
 
-      if (voteError) {
-        console.error('Error fetching votes:', voteError);
+      while (hasMore) {
+        const { data: voteData, error: voteError } = await supabase
+          .from('venue_votes')
+          .select('*')
+          .range(from, from + pageSize - 1);
+
+        if (voteError) {
+          console.error('Error fetching votes:', voteError);
+          break;
+        }
+
+        if (voteData && voteData.length > 0) {
+          allVotes = [...allVotes, ...voteData];
+          from += pageSize;
+          
+          // If we got less than pageSize records, we've reached the end
+          if (voteData.length < pageSize) {
+            hasMore = false;
+          }
+        } else {
+          hasMore = false;
+        }
       }
+
+      console.log(`Fetched ${allVotes.length} votes from Supabase`);
       
       // Create votes lookup map for O(1) access
       const votesMap = new Map();
-      if (voteData) {
-        voteData.forEach(vote => votesMap.set(vote.osm_id, vote));
-      }
+      allVotes.forEach(vote => votesMap.set(vote.osm_id, vote));
       
       // Process features
       geoJson.features.forEach((feature) => {
