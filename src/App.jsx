@@ -10,13 +10,17 @@ function App() {
   const mapContainer = useRef(null);
   const map = useRef(null);
   const masterData = useRef(null);
-  const popupRef = useRef(null); // Track current popup to avoid memory leaks
+  const popupRef = useRef(null);
+  const retryCount = useRef(0);
+  const maxRetries = 3;
   
   const [activeFilter, setActiveFilter] = useState('all');
   const [showWelcome, setShowWelcome] = useState(true);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
   const [stats, setStats] = useState({ total: 0, mapped: 0, percent: 0 });
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
 
   // 🛡️ HELPER: Majority Rule Calculation (Memoized)
   const calculateStatus = useCallback((votes) => {
@@ -37,8 +41,15 @@ function App() {
     return { color: '#b0bec5', text: 'Unknown', type: 'unknown' };
   }, []);
 
-  // Fetch Overpass data (wrapped in useCallback to prevent recreation)
-  const fetchOverpassData = useCallback(async () => {
+  // Fetch Overpass data with retry logic
+  const fetchOverpassData = useCallback(async (isRetry = false) => {
+    if (isRetry) {
+      console.log(`Retry attempt ${retryCount.current + 1} of ${maxRetries}`);
+    }
+    
+    setIsLoading(true);
+    setLoadError(null);
+
     const query = `
       [out:json][timeout:25];
       (
@@ -48,17 +59,32 @@ function App() {
     `;
 
     try {
+      // Fetch Overpass data
       const response = await fetch("https://overpass-api.de/api/interpreter", {
         method: "POST",
-        body: query
+        body: query,
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        }
       });
       
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(`Overpass API error: ${response.status} ${response.statusText}`);
       }
       
       const data = await response.json();
+      
+      if (!data || !data.elements || data.elements.length === 0) {
+        throw new Error('No data received from Overpass API');
+      }
+      
       const geoJson = osmtogeojson(data);
+
+      if (!geoJson || !geoJson.features || geoJson.features.length === 0) {
+        throw new Error('Failed to convert OSM data to GeoJSON');
+      }
+
+      console.log(`Successfully fetched ${geoJson.features.length} venues from Overpass`);
 
       // Fetch ALL votes from Supabase (with pagination to handle >1000 records)
       let allVotes = [];
@@ -74,6 +100,7 @@ function App() {
 
         if (voteError) {
           console.error('Error fetching votes:', voteError);
+          // Don't throw - continue with empty votes if Supabase fails
           break;
         }
 
@@ -81,7 +108,6 @@ function App() {
           allVotes = [...allVotes, ...voteData];
           from += pageSize;
           
-          // If we got less than pageSize records, we've reached the end
           if (voteData.length < pageSize) {
             hasMore = false;
           }
@@ -132,9 +158,9 @@ function App() {
       masterData.current = geoJson;
 
       // Update map source
-      if (map.current.getSource('places')) {
+      if (map.current && map.current.getSource('places')) {
         map.current.getSource('places').setData(geoJson);
-      } else {
+      } else if (map.current) {
         map.current.addSource('places', {
           type: 'geojson',
           data: geoJson,
@@ -155,14 +181,35 @@ function App() {
 
         setupPopupInteraction();
       }
+
+      setIsLoading(false);
+      retryCount.current = 0; // Reset retry count on success
+      
     } catch (error) {
       console.error("Error fetching data:", error);
-      // Optionally show user-facing error message
+      
+      // Retry logic
+      if (retryCount.current < maxRetries) {
+        retryCount.current++;
+        setLoadError(`Loading failed. Retrying... (${retryCount.current}/${maxRetries})`);
+        
+        // Exponential backoff: 1s, 2s, 4s
+        const delay = Math.pow(2, retryCount.current - 1) * 1000;
+        setTimeout(() => {
+          fetchOverpassData(true);
+        }, delay);
+      } else {
+        setIsLoading(false);
+        setLoadError('Failed to load venue data. Please refresh the page.');
+        console.error('Max retries reached. Please refresh the page.');
+      }
     }
   }, [calculateStatus]);
 
   // Setup popup interaction (memoized)
   const setupPopupInteraction = useCallback(() => {
+    if (!map.current) return;
+
     const handleClick = (e) => {
       const clickedFeature = e.features[0]; 
       const coordinates = clickedFeature.geometry.coordinates.slice();
@@ -230,13 +277,6 @@ function App() {
           const col = `${voteType}_votes`.replace('girocard', 'ec'); 
           const newCount = match.properties.votes[col] + 1;
 
-          console.log('Attempting to save vote:', {
-            osm_id: clickedFeature.id,
-            voteType,
-            col,
-            newCount
-          });
-
           // Update database
           const { data: upsertData, error: dbError } = await supabase
             .from('venue_votes')
@@ -253,8 +293,6 @@ function App() {
             alert('Failed to save vote. Please try again.');
             return; 
           }
-
-          console.log('Vote saved successfully:', upsertData);
 
           // Update local data
           match.properties.votes[col] = newCount; 
@@ -339,10 +377,12 @@ function App() {
           f.properties.filter_type === category.replace('ec', 'girocard')
         );
 
-    map.current.getSource('places').setData({ 
-      type: 'FeatureCollection', 
-      features: filteredFeatures 
-    });
+    if (map.current && map.current.getSource('places')) {
+      map.current.getSource('places').setData({ 
+        type: 'FeatureCollection', 
+        features: filteredFeatures 
+      });
+    }
   }, []);
 
   // Initialize map
@@ -385,7 +425,10 @@ function App() {
       'bottom-right' 
     );
 
-    map.current.on('load', fetchOverpassData);
+    map.current.on('load', () => {
+      console.log('Map loaded successfully');
+      fetchOverpassData();
+    });
 
     // Cleanup function
     return () => {
@@ -490,6 +533,35 @@ function App() {
       <img src="/android-chrome-512x512.png" className="watermark-logo" alt="Logo" />
       <Analytics /> 
       <WelcomePopup />
+      
+      {/* Loading indicator */}
+      {isLoading && (
+        <div className="toast-notification" style={{ top: '50%', transform: 'translate(-50%, -50%)' }}>
+          {loadError || 'Loading venues... 🗺️'}
+        </div>
+      )}
+      
+      {/* Error message with retry button */}
+      {!isLoading && loadError && (
+        <div className="toast-notification" style={{ 
+          top: '50%', 
+          transform: 'translate(-50%, -50%)',
+          backgroundColor: '#FF3B30',
+          cursor: 'pointer',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '10px',
+          padding: '16px 24px'
+        }}
+        onClick={() => {
+          retryCount.current = 0;
+          fetchOverpassData();
+        }}>
+          <div>{loadError}</div>
+          <div style={{ fontSize: '12px', opacity: 0.9 }}>Tap to retry</div>
+        </div>
+      )}
+      
       {toastMessage && <div className="toast-notification">{toastMessage}</div>}
     </div>
   );
