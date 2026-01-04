@@ -350,6 +350,11 @@ html, body, #root {
     font-size: 12px;
     padding: 6px 10px;
   }
+
+  /* Push navigation controls down to avoid progress bar overlap */
+  .maplibregl-ctrl-top-right {
+    top: 90px !important;
+  }
 }
 
 /* ---------------------------------- */
