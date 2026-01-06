@@ -13,6 +13,7 @@ function App() {
   const popupRef = useRef(null);
   const retryCount = useRef(0);
   const maxRetries = 3;
+  const blacklistSet = useRef(new Set()); // Store blacklisted OSM IDs
   
   const [activeFilter, setActiveFilter] = useState('all');
   const [showWelcome, setShowWelcome] = useState(true);
@@ -86,6 +87,19 @@ function App() {
 
       console.log(`Successfully fetched ${geoJson.features.length} venues from Overpass`);
 
+      // 🚫 FETCH BLACKLIST from Supabase
+      const { data: blacklistData, error: blacklistError } = await supabase
+        .from('venue_blacklist')
+        .select('osm_id');
+
+      if (blacklistError) {
+        console.error('Error fetching blacklist:', blacklistError);
+        // Continue without blacklist if fetch fails
+      } else if (blacklistData && blacklistData.length > 0) {
+        blacklistSet.current = new Set(blacklistData.map(item => item.osm_id));
+        console.log(`Fetched ${blacklistSet.current.size} blacklisted venues`);
+      }
+
       // Fetch ALL votes from Supabase (with pagination to handle >1000 records)
       let allVotes = [];
       let from = 0;
@@ -122,6 +136,17 @@ function App() {
       const votesMap = new Map();
       allVotes.forEach(vote => votesMap.set(vote.osm_id, vote));
       
+      // 🚫 FILTER OUT BLACKLISTED VENUES
+      geoJson.features = geoJson.features.filter(feature => {
+        const isBlacklisted = blacklistSet.current.has(feature.id);
+        if (isBlacklisted) {
+          console.log(`Filtering out blacklisted venue: ${feature.id}`);
+        }
+        return !isBlacklisted;
+      });
+
+      console.log(`${geoJson.features.length} venues after blacklist filtering`);
+
       // Process features
       geoJson.features.forEach((feature) => {
         const p = feature.properties;
@@ -229,6 +254,9 @@ function App() {
       const votedVenues = JSON.parse(localStorage.getItem('votedVenues') || '{}');
       const hasVoted = votedVenues[clickedFeature.id];
 
+      const reportedVenues = JSON.parse(localStorage.getItem('reportedVenues') || '{}');
+      const hasReported = reportedVenues[clickedFeature.id];
+
       const popupNode = document.createElement('div');
       
       const buttonsHtml = hasVoted 
@@ -240,6 +268,10 @@ function App() {
             <button id="vote-card" style="background:#34C759; color:white; border:none; padding:8px; border-radius:4px; cursor:pointer; font-weight:bold;">All Cards</button>
           </div>`;
 
+      const reportButtonHtml = hasReported
+        ? `<p style="text-align:center; color:#FF9500; font-size:11px; margin-top:8px;">⚠️ Already reported</p>`
+        : `<button id="report-closed" style="background:#FF9500; color:white; border:none; padding:6px 10px; border-radius:4px; cursor:pointer; font-size:11px; margin-top:8px; width:100%;">🚩 Report as closed/moved</button>`;
+
       popupNode.innerHTML = `
         <div style="font-family: sans-serif; padding: 5px; min-width: 160px;">
           <h3 style="margin:0 0 10px; color: #000;">${name}</h3>
@@ -248,6 +280,7 @@ function App() {
              Cash: <strong>${votes.cash_votes}</strong> | Giro: <strong>${votes.ec_votes}</strong> | Card: <strong>${votes.card_votes}</strong>
           </p>
           ${buttonsHtml}
+          ${reportButtonHtml}
         </div>
       `;
 
@@ -341,6 +374,46 @@ function App() {
         }
       };
 
+      // 🚩 Handle Report Closed/Moved
+      const handleReport = async () => {
+        try {
+          const { data: insertData, error: reportError } = await supabase
+            .from('venue_suggestions')
+            .insert({
+              osm_id: clickedFeature.id, // Keep the 'node/12345' format
+              venue_name: name,
+              suggestion_type: 'report_closed',
+              status: 'pending'
+            });
+
+          if (reportError) {
+            console.error("Report submission error:", reportError);
+            alert('Failed to submit report. Please try again.');
+            return;
+          }
+
+          // Save to localStorage to prevent duplicate reports
+          const updatedReportedVenues = JSON.parse(localStorage.getItem('reportedVenues') || '{}');
+          updatedReportedVenues[clickedFeature.id] = true;
+          localStorage.setItem('reportedVenues', JSON.stringify(updatedReportedVenues));
+
+          // Show toast notification
+          const reportMessages = [
+            "Report submitted! Thanks for keeping the map accurate. 🙏",
+            "Got it! We'll check this venue. Thanks! 👍",
+            "Report received! Helping keep Munich's map clean. 🧹",
+            "Thanks for the heads up! Report submitted. ✅"
+          ];
+          setToastMessage(reportMessages[Math.floor(Math.random() * reportMessages.length)]);
+
+          popup.remove();
+          setTimeout(() => setToastMessage(null), 3000);
+        } catch (error) {
+          console.error('Error in handleReport:', error);
+          alert('An error occurred while submitting your report.');
+        }
+      };
+
       // Attach event listeners
       if (!hasVoted) {
         const cashBtn = popupNode.querySelector('#vote-cash');
@@ -350,6 +423,11 @@ function App() {
         if (cashBtn) cashBtn.onclick = () => handleVote('cash');
         if (ecBtn) ecBtn.onclick = () => handleVote('girocard');
         if (cardBtn) cardBtn.onclick = () => handleVote('card');
+      }
+
+      if (!hasReported) {
+        const reportBtn = popupNode.querySelector('#report-closed');
+        if (reportBtn) reportBtn.onclick = handleReport;
       }
     };
 
